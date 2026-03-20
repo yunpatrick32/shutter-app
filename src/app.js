@@ -1,4 +1,5 @@
 import { creators, TAG_META } from './data.js?v=13';
+console.log('creators loaded:', creators?.length);
 const SHUTTER_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScf520qHkbI_0RynCAsm3aEb_ab3Sr6B4aQ7-ESJtARPdWgmw/viewform';
 const MAPBOX_TOKEN = 'pk.eyJ1IjoieXVucGF0cmljazMyIiwiYSI6ImNtbXF6ejN3NDE3Z2kyc3E0a3I1OWJyazYifQ.s6YwV4WG5fbB0ULZjXPncw';
 const LAKE_TAHOE = [-120.0324, 39.0968];
@@ -8,7 +9,7 @@ const messages = [ {id:1,from:'Sugar Bowl Resort',initials:'SB',color:'#818cf8',
 mapboxgl.accessToken = MAPBOX_TOKEN;
 const map = new mapboxgl.Map({ container:'map', style:'mapbox://styles/mapbox/dark-v11', center:LAKE_TAHOE, zoom:10.5, pitch:50, bearing:-10, antialias:true });
 map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
-map.on('load',()=>{ map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14}); map.setTerrain({source:'mapbox-dem',exaggeration:1.4}); map.setFog({color:'rgb(180,205,230)','high-color':'rgb(30,80,200)','horizon-blend':0.015,'space-color':'rgb(8,8,20)','star-intensity':0.7}); renderMarkers(creators); });
+map.on('load',()=>{ map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14}); map.setTerrain({source:'mapbox-dem',exaggeration:1.4}); map.setFog({color:'rgb(180,205,230)','high-color':'rgb(30,80,200)','horizon-blend':0.015,'space-color':'rgb(8,8,20)','star-intensity':0.7}); console.log('map loaded, rendering:', creators?.length); renderMarkers(creators); });
 map.on('click',()=>closeCard());
 function createPinEl(creator){ const meta=TAG_META[creator.primaryTag]; const el=document.createElement('div'); el.className='shutter-pin'; el.dataset.id=creator.id; const av=creator.schedule[0]; el.innerHTML=`<div class="pin-ring" style="--ring:${meta.color};--bg:${meta.bg}"><span class="pin-initials">${creator.initials}</span><span class="pin-avail ${av?'avail-yes':'avail-no'}"></span></div><span class="pin-label" style="color:${meta.color}">${creator.primaryTag}</span>`; el.addEventListener('click',e=>{e.stopPropagation();openCard(creator);}); return el; }
 function renderMarkers(list){ Object.values(markerMap).forEach(({marker})=>marker.remove()); markerMap={}; list.forEach(c=>{const el=createPinEl(c);const marker=new mapboxgl.Marker({element:el,anchor:'bottom'}).setLngLat([c.lng,c.lat]).addTo(map);markerMap[c.id]={marker,el};}); document.getElementById('creator-count').textContent=`${list.length} creator${list.length!==1?'s':''}`; }
