@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo \"PATH: $PATH\")",
+      "Bash(mdfind -name \"node\" kind:unix_executable)",
+      "Bash(brew --version)",
+      "Bash(curl --version)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
