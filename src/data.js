@@ -30,6 +30,8 @@ export const creators = [
       'GoPro Hero 12 Black',
     ],
     rates: { halfDay: 450, fullDay: 800 },
+    showRates: false,
+    portfolioUrl: 'https://www.instagram.com/jakemorrisonfilms',
     // schedule[0] = today (Mar 14), schedule[6] = Mar 20
     schedule: [true, true, false, true, true, false, true],
   },
@@ -53,6 +55,8 @@ export const creators = [
       'DJI Goggles 3',
     ],
     rates: { halfDay: 600, fullDay: 1100 },
+    showRates: false,
+    portfolioUrl: 'https://www.sierrachen.co',
     schedule: [false, true, true, true, false, true, true],
   },
   {
@@ -74,6 +78,8 @@ export const creators = [
       '120k Instagram / 80k TikTok',
     ],
     rates: { halfDay: 350, fullDay: 650 },
+    showRates: false,
+    portfolioUrl: 'https://www.instagram.com/zararhodes',
     schedule: [false, false, false, false, false, false, false],
   },
   {
@@ -96,6 +102,8 @@ export const creators = [
       'Phantom Flex 4K (rental, on request)',
     ],
     rates: { halfDay: 500, fullDay: 950 },
+    showRates: false,
+    portfolioUrl: '',
     schedule: [true, false, true, true, false, true, true],
   },
   {
@@ -118,6 +126,8 @@ export const creators = [
       'Laowa 10mm Zero-D',
     ],
     rates: { halfDay: 550, fullDay: 1000 },
+    showRates: false,
+    portfolioUrl: 'https://www.lunavasquez.com',
     schedule: [true, true, true, false, true, false, true],
   },
   {
@@ -140,6 +150,8 @@ export const creators = [
       'Full ND / CPL filter kit',
     ],
     rates: { halfDay: 400, fullDay: 750 },
+    showRates: false,
+    portfolioUrl: '',
     schedule: [true, true, false, true, true, true, false],
   },
   {
@@ -156,6 +168,8 @@ export const creators = [
     bio: 'Snowboard filmer and content creator based in Truckee. Sony FX3 shooter with a DJI RS3 gimbal. Off-road capable — Tacoma TRD gets me anywhere in the Sierra. Founder of Shutter.',
     gear: ['Sony FX3', 'DJI RS3 gimbal', 'Premiere Pro', 'Tacoma TRD — off-road', 'GoPro Hero 12'],
     rates: { halfDay: 400, fullDay: 700 },
+    showRates: false,
+    portfolioUrl: '',
     schedule: [true, true, true, true, true, true, true],
   },
 ];

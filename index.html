@@ -492,6 +492,35 @@
       box-shadow: 0 4px 20px rgba(129,140,248,.45);
     }
 
+    /* ─── RATES HIDDEN STATE ──────────────────────────── */
+    .rates-hidden-box {
+      display: flex; align-items: center; gap: 10px;
+      background: #1f2937; border: 1px dashed #374151;
+      border-radius: 10px; padding: 12px 14px;
+      font-size: .84rem; color: #6b7280;
+    }
+    .rates-hidden-box span:first-child { font-size: 1rem; }
+
+    /* ─── PORTFOLIO LINK ──────────────────────────────── */
+    .portfolio-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #1f2937; border: 1px solid #374151;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: .84rem; color: #818cf8; text-decoration: none;
+      font-weight: 600; transition: border-color .15s, background .15s;
+      width: 100%;
+    }
+    .portfolio-link:hover { border-color: #818cf8; background: rgba(129,140,248,.1); }
+
+    /* ─── MY PROFILE EXTRAS ───────────────────────────── */
+    #mp-portfolio-url {
+      width: 100%; background: #1f2937; border: 1px solid #374151;
+      border-radius: 10px; color: #f9fafb; padding: 10px 12px;
+      font-size: .85rem; outline: none; font-family: inherit;
+    }
+    #mp-portfolio-url:focus { border-color: #818cf8; }
+    #rates-vis-status { font-size: .76rem; color: #6b7280; margin-top: 2px; display: block; }
+
     /* ─── SCROLLBARS ──────────────────────────────────── */
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -553,6 +582,14 @@
   <div class="card-sec">
     <div class="sec-label">Rates</div>
     <div id="card-rates"></div>
+    <div id="card-rates-hidden" class="rates-hidden-box" style="display:none;">
+      <span>🔒</span>
+      <span>Rates on request — message to enquire</span>
+    </div>
+  </div>
+  <div class="card-sec" id="card-portfolio-wrap" style="display:none;">
+    <div class="sec-label">Portfolio</div>
+    <a id="card-portfolio-link" href="#" target="_blank" rel="noopener" class="portfolio-link">View Portfolio ↗</a>
   </div>
   <div class="card-sec">
     <div class="sec-label">Availability</div>
@@ -697,6 +734,25 @@
           </div>
         </div>
       </div>
+      <!-- rates visibility -->
+      <div>
+        <div class="sec-label" style="margin-bottom:8px;">Rates Visibility</div>
+        <div class="live-row">
+          <div class="live-left">
+            <div class="live-lbl">Show rates on my profile</div>
+            <span id="rates-vis-status">Hidden from profile</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="rates-visible-toggle" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <!-- portfolio -->
+      <div>
+        <div class="sec-label" style="margin-bottom:8px;">Portfolio URL</div>
+        <input type="url" id="mp-portfolio-url" placeholder="https://yoursite.com or instagram.com/handle" />
+      </div>
       <!-- gear -->
       <div>
         <div class="sec-label" style="margin-bottom:8px;">Gear</div>
@@ -737,7 +793,7 @@
 <!-- ══ TOAST ═══════════════════════════════════════════ -->
 <div id="toast"></div>
 
-<script type="module" src="src/app.js?v=13"></script>
+<script type="module" src="src/app.js?v=14"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
