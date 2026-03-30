@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shutter — Feature Preview</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0e1a; color: #f9fafb; padding: 32px 20px; }
+    h1 { font-size: 1.4rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px; }
+    h1 span { color: #818cf8; }
+    .subtitle { font-size: 0.85rem; color: #6b7280; margin-bottom: 36px; }
+    .section { margin-bottom: 40px; }
+    .section-title { font-size: 0.7rem; font-weight: 700; color: #818cf8; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #1f2937; }
+
+    /* ── shared card styles ── */
+    .card { background: #111827; border-radius: 22px; border: 1px solid #1f2937; max-width: 420px; overflow: hidden; }
+    .drag-handle { width: 36px; height: 4px; border-radius: 2px; background: #374151; margin: 12px auto 6px; }
+    .card-hero { display: flex; align-items: flex-start; gap: 13px; padding: 4px 18px 14px; }
+    .card-avatar { width: 58px; height: 58px; border-radius: 50%; border: 2.5px solid #818cf8; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; background: #1e1b4b; color: #818cf8; flex-shrink: 0; }
+    .card-avatar.drone { border-color: #a78bfa; background: #1d0f3d; color: #a78bfa; }
+    .card-meta { flex: 1; }
+    .card-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 2px; }
+    .card-loc { font-size: .78rem; color: #9ca3af; margin-bottom: 4px; }
+    .card-rating { font-size: .82rem; margin-bottom: 6px; }
+    .tag-chip { font-size: .7rem; font-weight: 600; padding: 3px 9px; border-radius: 12px; border: 1px solid; }
+    .close-btn { width: 30px; height: 30px; border-radius: 50%; background: #1f2937; border: 1px solid #374151; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9ca3af; font-size: .85rem; flex-shrink: 0; }
+    .card-sec { padding: 0 18px 14px; }
+    .sec-label { font-size: .68rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 7px; }
+
+    /* ── RATES ── */
+    .rates-row { display: flex; gap: 8px; }
+    .rate-box { flex: 1; background: #1f2937; border: 1px solid #374151; border-radius: 10px; padding: 10px; text-align: center; }
+    .rate-val { font-size: 1rem; font-weight: 700; }
+    .rate-label { font-size: .68rem; color: #6b7280; margin-top: 2px; }
+    .rates-hidden-box { display: flex; align-items: center; gap: 10px; background: #1f2937; border: 1px dashed #374151; border-radius: 10px; padding: 12px 14px; font-size: .84rem; color: #6b7280; }
+
+    /* ── PORTFOLIO ── */
+    .portfolio-link { display: inline-flex; align-items: center; gap: 6px; background: #1f2937; border: 1px solid #374151; border-radius: 10px; padding: 10px 14px; font-size: .84rem; color: #818cf8; text-decoration: none; font-weight: 600; width: 100%; }
+    .portfolio-link:hover { border-color: #818cf8; background: rgba(129,140,248,.1); }
+
+    /* ── CARD ACTIONS ── */
+    .card-actions { display: flex; gap: 9px; padding: 2px 18px 16px; }
+    .card-btn { flex: 1; padding: 13px; border: none; border-radius: 12px; font-size: .9rem; font-weight: 700; cursor: pointer; }
+    .btn-book { background: #16a34a; color: #fff; }
+    .btn-msg { background: #1f2937; color: #818cf8; border: 1px solid rgba(129,140,248,.3); }
+
+    /* ── MY PROFILE PANEL ── */
+    .panel { background: #111827; border-radius: 16px; border: 1px solid #1f2937; max-width: 420px; overflow: hidden; }
+    .panel-hdr { display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid #1f2937; }
+    .panel-title { font-size: 1rem; font-weight: 700; flex: 1; }
+    .mp-body { padding: 18px; display: flex; flex-direction: column; gap: 18px; }
+    .mp-section-label { font-size: .68rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
+    .rates-edit { display: flex; gap: 8px; }
+    .re-group { flex: 1; }
+    .re-group label { display: block; font-size: .68rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+    .re-group input { width: 100%; background: #1f2937; border: 1px solid #374151; border-radius: 10px; color: #f9fafb; padding: 10px 12px; font-size: .9rem; outline: none; }
+    .live-row { display: flex; align-items: center; justify-content: space-between; background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 13px 15px; }
+    .live-left .live-lbl { font-size: .9rem; font-weight: 600; }
+    .live-sub { font-size: .76rem; color: #6b7280; margin-top: 2px; display: block; }
+    .live-sub.on { color: #34d399; }
+    .toggle { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track { position: absolute; inset: 0; background: #374151; border-radius: 13px; cursor: pointer; transition: background .2s; }
+    .toggle-track::before { content: ''; position: absolute; width: 20px; height: 20px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: transform .2s; }
+    .toggle input:checked + .toggle-track { background: #16a34a; }
+    .toggle input:checked + .toggle-track::before { transform: translateX(20px); }
+    .port-input { width: 100%; background: #1f2937; border: 1px solid #374151; border-radius: 10px; color: #f9fafb; padding: 10px 12px; font-size: .85rem; outline: none; font-family: inherit; }
+    .port-input:focus { border-color: #818cf8; }
+    .save-btn { width: 100%; padding: 13px; border: none; border-radius: 12px; background: #818cf8; color: #fff; font-size: .92rem; font-weight: 700; cursor: pointer; }
+
+    /* layout */
+    .row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 300px; }
+    .col-label { font-size: .75rem; color: #6b7280; margin-bottom: 10px; font-style: italic; }
+    .badge-new { display: inline-block; background: rgba(129,140,248,.2); border: 1px solid rgba(129,140,248,.4); color: #818cf8; font-size: .65rem; font-weight: 700; letter-spacing: .06em; padding: 2px 7px; border-radius: 10px; text-transform: uppercase; margin-left: 8px; vertical-align: middle; }
+  </style>
+</head>
+<body>
+
+<h1>SHUT<span>TER</span> — Feature Preview</h1>
+<p class="subtitle">v14 changes: rates visibility toggle + portfolio link</p>
+
+<!-- ══ SECTION 1: Creator profile card ══ -->
+<div class="section">
+  <div class="section-title">Creator Profile Card — Rates &amp; Portfolio</div>
+  <div class="row">
+
+    <!-- rates HIDDEN (default) -->
+    <div class="col">
+      <div class="col-label">Default state — rates hidden <span class="badge-new">new</span></div>
+      <div class="card">
+        <div class="drag-handle"></div>
+        <div class="card-hero">
+          <div class="card-avatar">JM</div>
+          <div class="card-meta">
+            <div class="card-name">Jake Morrison</div>
+            <div class="card-loc">📍 Palisades Tahoe, CA</div>
+            <div class="card-rating"><span style="color:#818cf8">★★★★★</span> <span style="color:#6b7280;font-size:.75rem">4.9 (87 reviews)</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              <span class="tag-chip" style="background:rgba(129,140,248,.1);color:#818cf8;border-color:rgba(129,140,248,.25)">🏂 Snowboard</span>
+              <span class="tag-chip" style="background:rgba(251,191,36,.1);color:#fbbf24;border-color:rgba(251,191,36,.25)">📷 Photo</span>
+            </div>
+          </div>
+          <div class="close-btn">✕</div>
+        </div>
+        <div class="card-sec">
+          <div class="sec-label">Rates</div>
+          <!-- hidden state -->
+          <div class="rates-hidden-box">
+            <span>🔒</span>
+            <span>Rates on request — message to enquire</span>
+          </div>
+        </div>
+        <div class="card-sec">
+          <div class="sec-label">Portfolio <span class="badge-new">new</span></div>
+          <a class="portfolio-link" href="#" onclick="return false">View Portfolio ↗</a>
+        </div>
+        <div class="card-actions">
+          <button class="card-btn btn-book">Book Now</button>
+          <button class="card-btn btn-msg">Message</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- rates VISIBLE (after creator toggles on) -->
+    <div class="col">
+      <div class="col-label">After creator enables rates visibility</div>
+      <div class="card">
+        <div class="drag-handle"></div>
+        <div class="card-hero">
+          <div class="card-avatar">JM</div>
+          <div class="card-meta">
+            <div class="card-name">Jake Morrison</div>
+            <div class="card-loc">📍 Palisades Tahoe, CA</div>
+            <div class="card-rating"><span style="color:#818cf8">★★★★★</span> <span style="color:#6b7280;font-size:.75rem">4.9 (87 reviews)</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              <span class="tag-chip" style="background:rgba(129,140,248,.1);color:#818cf8;border-color:rgba(129,140,248,.25)">🏂 Snowboard</span>
+              <span class="tag-chip" style="background:rgba(251,191,36,.1);color:#fbbf24;border-color:rgba(251,191,36,.25)">📷 Photo</span>
+            </div>
+          </div>
+          <div class="close-btn">✕</div>
+        </div>
+        <div class="card-sec">
+          <div class="sec-label">Rates</div>
+          <div class="rates-row">
+            <div class="rate-box"><div class="rate-val">$450</div><div class="rate-label">Half Day</div></div>
+            <div class="rate-box"><div class="rate-val">$800</div><div class="rate-label">Full Day</div></div>
+            <div class="rate-box"><div class="rate-val">On request</div><div class="rate-label">Custom</div></div>
+          </div>
+        </div>
+        <div class="card-sec">
+          <div class="sec-label">Portfolio</div>
+          <a class="portfolio-link" href="#" onclick="return false">View Portfolio ↗</a>
+        </div>
+        <div class="card-actions">
+          <button class="card-btn btn-book">Book Now</button>
+          <button class="card-btn btn-msg">Message</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ SECTION 2: My Profile panel new fields ══ -->
+<div class="section">
+  <div class="section-title">My Profile Panel — New Settings</div>
+  <div class="row">
+    <div class="col">
+      <div class="col-label">Rates visibility toggle + portfolio URL field (added to settings panel)</div>
+      <div class="panel">
+        <div class="panel-hdr">
+          <span class="panel-title">My Profile</span>
+          <span style="color:#9ca3af;cursor:pointer;">✕</span>
+        </div>
+        <div class="mp-body">
+
+          <!-- rates (existing) -->
+          <div>
+            <div class="mp-section-label">Rates</div>
+            <div class="rates-edit">
+              <div class="re-group"><label>Half Day ($)</label><input type="number" value="400" /></div>
+              <div class="re-group"><label>Full Day ($)</label><input type="number" value="700" /></div>
+            </div>
+          </div>
+
+          <!-- rates visibility toggle (NEW) -->
+          <div>
+            <div class="mp-section-label">Rates Visibility <span class="badge-new">new</span></div>
+            <div class="live-row">
+              <div class="live-left">
+                <div class="live-lbl">Show rates on my profile</div>
+                <span class="live-sub">Hidden — rates on request</span>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- portfolio URL (NEW) -->
+          <div>
+            <div class="mp-section-label">Portfolio URL <span class="badge-new">new</span></div>
+            <input class="port-input" type="url" placeholder="https://yoursite.com or instagram.com/handle" />
+          </div>
+
+          <button class="save-btn">Save Profile</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- toggle ON state -->
+    <div class="col">
+      <div class="col-label">Rates toggle ON — green status, rates will show on card</div>
+      <div class="panel">
+        <div class="panel-hdr">
+          <span class="panel-title">My Profile</span>
+          <span style="color:#9ca3af;cursor:pointer;">✕</span>
+        </div>
+        <div class="mp-body">
+          <div>
+            <div class="mp-section-label">Rates</div>
+            <div class="rates-edit">
+              <div class="re-group"><label>Half Day ($)</label><input type="number" value="400" /></div>
+              <div class="re-group"><label>Full Day ($)</label><input type="number" value="700" /></div>
+            </div>
+          </div>
+          <div>
+            <div class="mp-section-label">Rates Visibility <span class="badge-new">new</span></div>
+            <div class="live-row">
+              <div class="live-left">
+                <div class="live-lbl">Show rates on my profile</div>
+                <span class="live-sub on">Visible on profile</span>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <div class="mp-section-label">Portfolio URL <span class="badge-new">new</span></div>
+            <input class="port-input" type="url" value="https://vimeo.com/patrickyu" />
+          </div>
+          <button class="save-btn">Save Profile</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

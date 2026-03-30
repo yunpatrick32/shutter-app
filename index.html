@@ -521,6 +521,55 @@
     #mp-portfolio-url:focus { border-color: #818cf8; }
     #rates-vis-status { font-size: .76rem; color: #6b7280; margin-top: 2px; display: block; }
 
+    /* ─── JOIN PANEL (bottom sheet) ───────────────────── */
+    #join-panel {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 35;
+      background: #0a0a0f;
+      border-radius: 22px 22px 0 0;
+      border-top: 1px solid #1f2937;
+      transform: translateY(102%);
+      transition: transform .32s cubic-bezier(.4,0,.2,1);
+      max-height: 90vh; overflow-y: auto; overscroll-behavior: contain;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+    #join-panel.open { transform: translateY(0); }
+
+    .join-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 18px 14px;
+    }
+    .join-title { font-size: 1.05rem; font-weight: 700; }
+    #join-close {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #1f2937; border: 1px solid #374151;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #9ca3af; font-size: .85rem; flex-shrink: 0;
+    }
+    #join-close:hover { background: #374151; color: #f9fafb; }
+
+    .join-body { padding: 0 18px; display: flex; flex-direction: column; gap: 15px; }
+
+    .spec-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+    .spec-chip {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .8rem; color: #9ca3af; cursor: pointer; user-select: none;
+      background: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 6px 10px;
+      transition: border-color .12s, color .12s, background .12s;
+    }
+    .spec-chip:has(.spec-check:checked) {
+      border-color: #818cf8; color: #818cf8; background: rgba(129,140,248,.12);
+    }
+    .spec-check { display: none; }
+
+    #join-submit {
+      width: calc(100% - 36px); margin: 18px 18px 0;
+      padding: 14px; border: none; border-radius: 12px;
+      background: #818cf8; color: #fff; font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: opacity .15s;
+    }
+    #join-submit:hover { opacity: .88; }
+    #join-submit:disabled { opacity: .45; cursor: not-allowed; }
+
     /* ─── SCROLLBARS ──────────────────────────────────── */
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -787,13 +836,67 @@
   </div>
 </div>
 
+<!-- ══ JOIN PANEL (bottom sheet) ═════════════════════════ -->
+<div id="join-panel">
+  <div class="drag-handle"></div>
+  <div class="join-hdr">
+    <span class="join-title">Join the map</span>
+    <button id="join-close">✕</button>
+  </div>
+  <div class="join-body">
+    <div class="fgroup">
+      <label>Full name *</label>
+      <input type="text" class="finput" id="jn-name" placeholder="Your name" />
+    </div>
+    <div class="fgroup">
+      <label>Location *</label>
+      <input type="text" class="finput" id="jn-location" placeholder="e.g. Truckee, Palisades, South Lake" />
+    </div>
+    <div class="fgroup">
+      <label>Specialties *</label>
+      <div class="spec-grid">
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="snowboard" /> 🏂 Snowboard</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="ski" /> ⛷️ Ski</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="photo" /> 📷 Photo</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="video" /> 🎬 Video</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="drone" /> 🚁 Drone</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="model" /> ✨ Model</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="off-road" /> 🔥 Off-Road</label>
+      </div>
+    </div>
+    <div class="fgroup">
+      <label>Bio</label>
+      <textarea class="ftextarea" id="jn-bio" placeholder="2-3 sentences about your work…"></textarea>
+    </div>
+    <div class="fgroup">
+      <label>Gear <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:#6b7280">(comma separated)</span></label>
+      <input type="text" class="finput" id="jn-gear" placeholder="Sony FX3, DJI RS3, GoPro Hero 12" />
+    </div>
+    <div class="rates-edit">
+      <div class="re-group">
+        <label>Half day rate</label>
+        <input type="number" id="jn-half" placeholder="400" />
+      </div>
+      <div class="re-group">
+        <label>Full day rate</label>
+        <input type="number" id="jn-full" placeholder="700" />
+      </div>
+    </div>
+    <div class="fgroup">
+      <label>Instagram</label>
+      <input type="text" class="finput" id="jn-instagram" placeholder="@yourhandle" />
+    </div>
+  </div>
+  <button id="join-submit">Add me to the map</button>
+</div>
+
 <!-- ══ JOIN BUTTON ══════════════════════════════════════ -->
-<button id="join-btn" onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLScf520qHkbI_0RynCAsm3aEb_ab3Sr6B4aQ7-ESJtARPdWgmw/viewform', '_blank')">+ Join map</button>
+<button id="join-btn">+ Join map</button>
 
 <!-- ══ TOAST ═══════════════════════════════════════════ -->
 <div id="toast"></div>
 
-<script type="module" src="src/app.js?v=14"></script>
+<script type="module" src="src/app.js?v=19"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
