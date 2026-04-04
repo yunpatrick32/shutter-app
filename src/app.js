@@ -1,6 +1,5 @@
 import { TAG_META } from './data.js?v=14';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-const supabase = createClient('https://panktkmwgcttjpebucqy.supabase.co', 'sb_publishable_tuwGL-r9XQO7mlC6FPOVdQ_35XHkEa1');
+const supabase = window.supabase.createClient('https://panktkmwgcttjpebucqy.supabase.co', 'sb_publishable_tuwGL-r9XQO7mlC6FPOVdQ_35XHkEa1');
 function toCreator(r){ return { id:r.id, name:r.name, initials:r.initials, primaryTag:r.primary_tag, lat:r.lat, lng:r.lng, location:r.location, rating:r.rating, reviewCount:r.review_count, tags:r.tags||[], bio:r.bio, gear:r.gear||[], rates:{halfDay:r.half_day_rate,fullDay:r.full_day_rate}, schedule:r.schedule||[true,true,true,true,true,true,true], isLive:r.is_live, showRates:r.show_rates }; }
 let creators = [];
 const SHUTTER_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScf520qHkbI_0RynCAsm3aEb_ab3Sr6B4aQ7-ESJtARPdWgmw/viewform';
@@ -12,8 +11,11 @@ const messages = [ {id:1,from:'Sugar Bowl Resort',initials:'SB',color:'#818cf8',
 mapboxgl.accessToken = MAPBOX_TOKEN;
 const map = new mapboxgl.Map({ container:'map', style:'mapbox://styles/mapbox/dark-v11', center:LAKE_TAHOE, zoom:10.5, pitch:50, bearing:-10, antialias:true });
 map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
-async function fetchAndRender(){ const {data,error}=await supabase.from('profiles').select('*').eq('is_live',true); if(error){console.error('Supabase error:',error);return;} creators=(data||[]).map(toCreator); const filtered=activeFilter==='all'?creators:creators.filter(c=>c.tags.includes(activeFilter)); renderMarkers(filtered); }
-map.on('load',()=>{ map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14}); map.setTerrain({source:'mapbox-dem',exaggeration:1.4}); map.setFog({color:'rgb(180,205,230)','high-color':'rgb(30,80,200)','horizon-blend':0.015,'space-color':'rgb(8,8,20)','star-intensity':0.7}); fetchAndRender(); });
+async function fetchAndRender(){ if(fetchAndRender._running)return; fetchAndRender._running=true; const {data,error}=await supabase.from('profiles').select('*').eq('is_live',true); fetchAndRender._running=false; if(error){console.error('Supabase error:',error);return;} creators=(data||[]).map(toCreator); const filtered=activeFilter==='all'?creators:creators.filter(c=>c.tags.includes(activeFilter)); renderMarkers(filtered); }
+function setupTerrain(){ if(map.getSource('mapbox-dem'))return; map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14}); map.setTerrain({source:'mapbox-dem',exaggeration:1.4}); map.setFog({color:'rgb(180,205,230)','high-color':'rgb(30,80,200)','horizon-blend':0.015,'space-color':'rgb(8,8,20)','star-intensity':0.7}); }
+map.on('load',()=>{ setupTerrain(); fetchAndRender(); });
+map.on('style.load',()=>{ setupTerrain(); if(!creators.length)fetchAndRender(); });
+
 map.on('click',()=>closeCard());
 function createPinEl(creator){ const meta=TAG_META[creator.primaryTag]; const el=document.createElement('div'); el.className='shutter-pin'; el.dataset.id=creator.id; const av=creator.schedule[0]; el.innerHTML=`<div class="pin-ring" style="--ring:${meta.color};--bg:${meta.bg}"><span class="pin-initials">${creator.initials}</span><span class="pin-avail ${av?'avail-yes':'avail-no'}"></span></div><span class="pin-label" style="color:${meta.color}">${creator.primaryTag}</span>`; el.addEventListener('click',e=>{e.stopPropagation();openCard(creator);}); return el; }
 function renderMarkers(list){ Object.values(markerMap).forEach(({marker})=>marker.remove()); markerMap={}; list.forEach(c=>{const el=createPinEl(c);const marker=new mapboxgl.Marker({element:el,anchor:'bottom'}).setLngLat([c.lng,c.lat]).addTo(map);markerMap[c.id]={marker,el};}); document.getElementById('creator-count').textContent=`${list.length} creator${list.length!==1?'s':''}`; }
