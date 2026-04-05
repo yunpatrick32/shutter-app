@@ -570,6 +570,36 @@
     #join-submit:hover { opacity: .88; }
     #join-submit:disabled { opacity: .45; cursor: not-allowed; }
 
+    /* ─── LOGIN MODAL ───────────────────────────────── */
+    #login-modal {
+      position: absolute; inset: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      background: rgba(0,0,0,.6);
+      opacity: 0; pointer-events: none;
+      transition: opacity .2s;
+    }
+    #login-modal.open { opacity: 1; pointer-events: all; }
+    .login-card {
+      background: #111827; border: 1px solid #1f2937;
+      border-radius: 18px; padding: 28px 24px;
+      width: 100%; max-width: 340px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .login-card input[type=email] {
+      background: #1f2937; border: 1px solid #374151; border-radius: 10px;
+      padding: 12px 14px; color: #f9fafb; font-size: .9rem; width: 100%; outline: none;
+    }
+    .login-card input[type=email]:focus { border-color: #818cf8; }
+    #login-send {
+      padding: 13px; border: none; border-radius: 11px;
+      background: #818cf8; color: #fff; font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: opacity .15s;
+    }
+    #login-send:hover { opacity: .88; }
+    #login-send:disabled { opacity: .45; cursor: not-allowed; }
+    #login-sent { font-size: .85rem; color: #34d399; text-align: center; }
+
     /* ─── SCROLLBARS ──────────────────────────────────── */
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -837,6 +867,19 @@
 </div>
 
 <!-- ══ JOIN PANEL (bottom sheet) ═════════════════════════ -->
+<div id="login-modal">
+  <div class="login-card">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:1.05rem;font-weight:700;">Sign in to Shutter</div>
+      <button id="login-close" style="background:none;border:none;color:#9ca3af;font-size:1.1rem;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div style="font-size:.85rem;color:#9ca3af;line-height:1.5;">Enter your email and we'll send you a magic login link — no password needed.</div>
+    <input type="email" id="login-email" placeholder="your@email.com" />
+    <button id="login-send">Send me a login link</button>
+    <div id="login-sent" style="display:none">Check your email for a login link ✓</div>
+  </div>
+</div>
+
 <div id="join-panel">
   <div class="drag-handle"></div>
   <div class="join-hdr">
@@ -897,7 +940,7 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script type="module" src="src/app.js?v=22"></script>
+<script type="module" src="src/app.js?v=25"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
