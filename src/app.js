@@ -21,6 +21,7 @@ async function handleSignIn(user){ currentUser=user; const {data}=await supabase
 function updateProfileBtn(){ const btn=document.getElementById('profile-btn'); if(currentUser){btn.style.background='rgba(129,140,248,.15)';btn.style.borderColor='rgba(129,140,248,.4)';btn.style.color='#818cf8';}else{btn.style.background='';btn.style.borderColor='';btn.style.color='';} }
 function openLoginModal(){ document.getElementById('login-email').value=''; document.getElementById('login-sent').style.display='none'; const btn=document.getElementById('login-send');btn.disabled=false;btn.textContent='Send me a login link'; document.getElementById('login-modal').classList.add('open'); }
 function closeLoginModal(){ document.getElementById('login-modal').classList.remove('open'); }
+async function signInWithGoogle(){ await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://shutter-app.netlify.app'}}); }
 async function sendMagicLink(){ const email=document.getElementById('login-email').value.trim(); if(!email){showToast('Enter your email','#ef4444');return;} const btn=document.getElementById('login-send');btn.disabled=true;btn.textContent='Sending…'; const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:'https://shutter-app.netlify.app'}}); if(error){btn.disabled=false;btn.textContent='Send me a login link';showToast('Error sending link','#ef4444');return;} document.getElementById('login-sent').style.display='block'; }
 
 map.on('click',()=>closeCard());
@@ -79,6 +80,7 @@ card.addEventListener('touchmove',e=>{if(e.touches[0].clientY-touchStartY>60)clo
 updateNotifBadge();
 document.getElementById('login-close').addEventListener('click',closeLoginModal);
 document.getElementById('login-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLoginModal();});
+document.getElementById('login-google').addEventListener('click',signInWithGoogle);
 document.getElementById('login-send').addEventListener('click',sendMagicLink);
 document.getElementById('login-email').addEventListener('keydown',e=>{if(e.key==='Enter')sendMagicLink();});
 initAuth();
