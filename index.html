@@ -92,7 +92,7 @@
 
     /* ─── OVERLAY ─────────────────────────────────────── */
     #overlay {
-      position: absolute; inset: 0; z-index: 19;
+      position: fixed; inset: 0; z-index: 19;
       background: rgba(0,0,0,.45);
       opacity: 0; pointer-events: none;
       transition: opacity .25s;
@@ -101,7 +101,7 @@
 
     /* ─── PROFILE CARD (slides up from bottom) ────────── */
     #profile-card {
-      position: absolute; bottom: 0; left: 0; right: 0; z-index: 30;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
       background: #111827;
       border-radius: 22px 22px 0 0;
       border-top: 1px solid #1f2937;
@@ -196,7 +196,7 @@
 
     /* ─── SIDE PANELS (slide from right) ─────────────── */
     .side-panel {
-      position: absolute; top: 0; right: 0; bottom: 0; z-index: 40;
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 40;
       width: min(420px, 100vw);
       background: #111827;
       border-left: 1px solid #1f2937;
@@ -523,7 +523,7 @@
 
     /* ─── JOIN PANEL (bottom sheet) ───────────────────── */
     #join-panel {
-      position: absolute; bottom: 0; left: 0; right: 0; z-index: 35;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 35;
       background: #0a0a0f;
       border-radius: 22px 22px 0 0;
       border-top: 1px solid #1f2937;
@@ -572,7 +572,7 @@
 
     /* ─── LOGIN MODAL ───────────────────────────────── */
     #login-modal {
-      position: absolute; inset: 0; z-index: 50;
+      position: fixed; inset: 0; z-index: 50;
       display: flex; align-items: center; justify-content: center;
       padding: 24px;
       background: rgba(0,0,0,.6);
@@ -960,7 +960,7 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script type="module" src="src/app.js?v=33"></script>
+<script type="module" src="src/app.js?v=34"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
