@@ -920,15 +920,30 @@
       <label>Gear <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:#6b7280">(comma separated)</span></label>
       <input type="text" class="finput" id="jn-gear" placeholder="Sony FX3, DJI RS3, GoPro Hero 12" />
     </div>
+    <div class="fgroup" style="margin-bottom:6px;">
+      <label>Starting Rates <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:#6b7280">(optional)</span></label>
+      <p style="font-size:.78rem;color:#6b7280;margin-top:4px;line-height:1.5;">Every project is different — use these as a baseline. Final quotes are scoped per shoot.</p>
+    </div>
     <div class="rates-edit">
       <div class="re-group">
-        <label>Half day rate</label>
+        <label>Half day</label>
         <input type="number" id="jn-half" placeholder="400" />
       </div>
       <div class="re-group">
-        <label>Full day rate</label>
+        <label>Full day</label>
         <input type="number" id="jn-full" placeholder="700" />
       </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px;">
+      <div>
+        <div style="font-size:.85rem;font-weight:600;color:#f9fafb;">Show rates publicly</div>
+        <div style="font-size:.75rem;color:#6b7280;margin-top:2px;">Hidden by default — clients request a quote</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;">
+        <input type="checkbox" id="jn-show-rates" style="opacity:0;width:0;height:0;">
+        <span id="jn-rates-slider" style="position:absolute;cursor:pointer;inset:0;background:#374151;border-radius:24px;transition:.2s;"></span>
+        <span id="jn-rates-knob" style="position:absolute;left:3px;bottom:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;"></span>
+      </label>
     </div>
     <div class="fgroup">
       <label>Instagram</label>
@@ -945,7 +960,7 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script type="module" src="src/app.js?v=32"></script>
+<script type="module" src="src/app.js?v=33"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
