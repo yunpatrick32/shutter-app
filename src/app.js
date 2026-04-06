@@ -1,6 +1,6 @@
 import { TAG_META } from './data.js?v=14';
 const supabase = window.supabase.createClient('https://panktkmwgcttjpebucqy.supabase.co', 'sb_publishable_tuwGL-r9XQO7mlC6FPOVdQ_35XHkEa1');
-function toCreator(r){ return { id:r.id, name:r.name, initials:r.initials, primaryTag:r.primary_tag, lat:r.lat, lng:r.lng, location:r.location, rating:r.rating, reviewCount:r.review_count, tags:r.tags||[], bio:r.bio, gear:r.gear||[], rates:{halfDay:r.half_day_rate,fullDay:r.full_day_rate}, schedule:r.schedule||[true,true,true,true,true,true,true], isLive:r.is_live, showRates:r.show_rates }; }
+function toCreator(r){ return { id:r.id, userId:r.user_id, name:r.name, initials:r.initials, primaryTag:r.primary_tag, lat:r.lat, lng:r.lng, location:r.location, rating:r.rating, reviewCount:r.review_count, tags:r.tags||[], bio:r.bio, gear:r.gear||[], rates:{halfDay:r.half_day_rate,fullDay:r.full_day_rate}, schedule:r.schedule||[true,true,true,true,true,true,true], isLive:r.is_live, showRates:r.show_rates }; }
 let creators = [];
 const SHUTTER_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScf520qHkbI_0RynCAsm3aEb_ab3Sr6B4aQ7-ESJtARPdWgmw/viewform';
 const MAPBOX_TOKEN = 'pk.eyJ1IjoieXVucGF0cmljazMyIiwiYSI6ImNtbXF6ejN3NDE3Z2kyc3E0a3I1OWJyazYifQ.s6YwV4WG5fbB0ULZjXPncw';
@@ -8,7 +8,6 @@ const LAKE_TAHOE = [-120.0324, 39.0968];
 let activeFilter = 'all', selectedId = null, markerMap = {}, activeCreator = null;
 let currentUser = null, userProfile = null;
 const myProfile = { name:'Patrick Yun', initials:'PY', location:'Truckee, CA', primaryTag:'snowboard', tags:['snowboard','video','off-road'], bio:'Snowboard filmer and content creator based in Truckee. Off-road capable — no location too remote.', gear:['Sony FX3','DJI RS3 gimbal','Premiere Pro','Tacoma TRD — off-road'], rates:{halfDay:400,fullDay:700}, showRates:false, portfolioUrl:'', stats:{views:12,inquiries:3,earnings:1100} };
-const messages = [ {id:1,from:'Sugar Bowl Resort',initials:'SB',color:'#818cf8',bg:'#1e1b4b',preview:'Looking for a snowboard filmer for our spring event...',time:'2h ago',unread:true,thread:[{out:false,text:"Hey Patrick, we saw your profile on Shutter. Are you available late March?"},{out:true,text:"Hey! Yeah I'm available. What dates?"},{out:false,text:"March 28–29. Full day shoots. Highlight reel and raw footage."},{out:true,text:"Perfect, I'm free. My full day rate is $700. Happy to bring drone too."},{out:false,text:"Drone would be amazing. Let's lock in March 28!"}]}, {id:2,from:'NTCA',initials:'NT',color:'#34d399',bg:'#002d1c',preview:'See you at Carnelian Bay at 9!',time:'Yesterday',unread:false,thread:[{out:false,text:"Confirming your shoot at Carnelian Bay tomorrow at 9am."},{out:true,text:"Confirmed! FX3 and gimbal ready."},{out:false,text:"See you at Carnelian Bay at 9!"}]} ];
 mapboxgl.accessToken = MAPBOX_TOKEN;
 const map = new mapboxgl.Map({ container:'map', style:'mapbox://styles/mapbox/dark-v11', center:LAKE_TAHOE, zoom:10.5, pitch:50, bearing:-10, antialias:true });
 map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
@@ -16,8 +15,8 @@ async function fetchAndRender(){ if(fetchAndRender._running)return; fetchAndRend
 function setupTerrain(){ if(map.getSource('mapbox-dem'))return; map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14}); map.setTerrain({source:'mapbox-dem',exaggeration:1.4}); map.setFog({color:'rgb(180,205,230)','high-color':'rgb(30,80,200)','horizon-blend':0.015,'space-color':'rgb(8,8,20)','star-intensity':0.7}); }
 map.on('load',()=>{ setupTerrain(); fetchAndRender(); });
 map.on('style.load',()=>{ setupTerrain(); if(!creators.length)fetchAndRender(); });
-async function initAuth(){ const {data:{session}}=await supabase.auth.getSession(); if(session?.user)await handleSignIn(session.user); supabase.auth.onAuthStateChange(async(event,session)=>{ if(event==='SIGNED_IN'&&session?.user){await handleSignIn(session.user);closeLoginModal();} else if(event==='SIGNED_OUT'){currentUser=null;userProfile=null;updateProfileBtn();} }); }
-async function handleSignIn(user){ currentUser=user; const {data}=await supabase.from('profiles').select('*').eq('user_id',user.id).maybeSingle(); userProfile=data?toCreator(data):null; updateProfileBtn(); if(!userProfile){ closeLoginModal(); openJoin(); } else { closeLoginModal(); openMyProfile(); } }
+async function initAuth(){ const {data:{session}}=await supabase.auth.getSession(); if(session?.user)await handleSignIn(session.user); supabase.auth.onAuthStateChange(async(event,session)=>{ if(event==='SIGNED_IN'&&session?.user){await handleSignIn(session.user);closeLoginModal();} else if(event==='SIGNED_OUT'){currentUser=null;userProfile=null;updateProfileBtn();updateNotifBadge();} }); }
+async function handleSignIn(user){ currentUser=user; const {data}=await supabase.from('profiles').select('*').eq('user_id',user.id).maybeSingle(); userProfile=data?toCreator(data):null; updateProfileBtn(); updateNotifBadge(); if(!userProfile){ closeLoginModal(); openJoin(); } else { closeLoginModal(); openMyProfile(); } }
 function updateProfileBtn(){ const btn=document.getElementById('profile-btn'); if(currentUser){btn.style.background='rgba(129,140,248,.15)';btn.style.borderColor='rgba(129,140,248,.4)';btn.style.color='#818cf8';}else{btn.style.background='';btn.style.borderColor='';btn.style.color='';} const joinBtn=document.getElementById('join-btn'); if(userProfile){joinBtn.style.display='none';}else{joinBtn.style.display='';} }
 function openLoginModal(){ document.getElementById('login-email').value=''; document.getElementById('login-sent').style.display='none'; const btn=document.getElementById('login-send');btn.disabled=false;btn.textContent='Send me a login link'; document.getElementById('login-modal').classList.add('open'); }
 function closeLoginModal(){ document.getElementById('login-modal').classList.remove('open'); }
@@ -29,18 +28,222 @@ map.on('click',()=>closeCard());
 function createPinEl(creator){ const meta=TAG_META[creator.primaryTag]; const el=document.createElement('div'); el.className='shutter-pin'; el.dataset.id=creator.id; const av=creator.schedule[0]; el.innerHTML=`<div class="pin-ring" style="--ring:${meta.color};--bg:${meta.bg}"><span class="pin-initials">${creator.initials}</span><span class="pin-avail ${av?'avail-yes':'avail-no'}"></span></div><span class="pin-label" style="color:${meta.color}">${creator.primaryTag}</span>`; el.addEventListener('click',e=>{e.stopPropagation();openCard(creator);}); return el; }
 function renderMarkers(list){ Object.values(markerMap).forEach(({marker})=>marker.remove()); markerMap={}; list.forEach(c=>{const el=createPinEl(c);const marker=new mapboxgl.Marker({element:el,anchor:'bottom'}).setLngLat([c.lng,c.lat]).addTo(map);markerMap[c.id]={marker,el};}); document.getElementById('creator-count').textContent=`${list.length} creator${list.length!==1?'s':''}`; }
 const DAY_ABBR=['SUN','MON','TUE','WED','THU','FRI','SAT'];
-function openCard(creator){ closeAllPanels(); selectedId=creator.id; activeCreator=creator; const meta=TAG_META[creator.primaryTag]; const av=creator.schedule[0]; Object.entries(markerMap).forEach(([id,{el}])=>el.classList.toggle('active',Number(id)===creator.id)); const avatar=document.getElementById('card-avatar'); avatar.textContent=creator.initials; avatar.style.cssText=`background:${meta.bg};border-color:${meta.color}`; document.getElementById('card-name').textContent=creator.name; document.getElementById('card-location').textContent=`📍 ${creator.location}`; const filled=Math.round(creator.rating); document.getElementById('card-rating').innerHTML=`<span style="color:${meta.color}">${'★'.repeat(filled)}${'☆'.repeat(5-filled)}</span> <span style="color:#6b7280;font-size:0.75rem">${creator.rating} (${creator.reviewCount} reviews)</span>`; document.getElementById('card-tags').innerHTML=creator.tags.map(t=>{const m=TAG_META[t];return`<span class="tag-chip" style="background:${m.color}18;color:${m.color};border-color:${m.color}40">${m.label}</span>`;}).join(''); document.getElementById('card-bio').textContent=creator.bio; document.getElementById('card-gear').innerHTML=creator.gear.map(g=>`<li class="gear-item"><span class="gear-dot">▸</span>${g}</li>`).join(''); const effectiveShowRates=creator.id===7?myProfile.showRates:creator.showRates; if(effectiveShowRates){document.getElementById('card-rates').innerHTML=[{label:'Half Day',val:`$${creator.rates.halfDay}`},{label:'Full Day',val:`$${creator.rates.fullDay}`},{label:'Custom',val:'On request'}].map(r=>`<div class="rate-box"><div class="rate-val">${r.val}</div><div class="rate-label">${r.label}</div></div>`).join('');document.getElementById('card-rates').style.display='flex';document.getElementById('card-rates-hidden').style.display='none';}else{document.getElementById('card-rates').style.display='none';document.getElementById('card-rates-hidden').style.display='flex';} const portUrl=creator.id===7?myProfile.portfolioUrl:creator.portfolioUrl; const portWrap=document.getElementById('card-portfolio-wrap'); if(portUrl){document.getElementById('card-portfolio-link').href=portUrl;portWrap.style.display='block';}else{portWrap.style.display='none';} const today=new Date(); document.getElementById('card-avail-grid').innerHTML=creator.schedule.map((open,i)=>{const d=new Date(today);d.setDate(today.getDate()+i);const label=i===0?'TODAY':DAY_ABBR[d.getDay()];return`<div class="avail-cell ${open?'avail-open':'avail-busy'} ${i===0?'avail-today':''}"><span class="avail-dname">${label}</span><span class="avail-dnum">${d.getDate()}</span><span class="avail-dot"></span></div>`;}).join(''); const bookBtn=document.getElementById('btn-book'); bookBtn.textContent=av?'Book Now':'Request Booking'; bookBtn.style.background=av?'#16a34a':'#374151'; document.getElementById('profile-card').classList.add('open'); document.getElementById('overlay').classList.add('active'); map.flyTo({center:[creator.lng,creator.lat],zoom:Math.max(map.getZoom(),11.5),pitch:52,duration:900,offset:[0,-120],essential:true}); }
+function openCard(creator){ closeAllPanels(); selectedId=creator.id; activeCreator=creator; const meta=TAG_META[creator.primaryTag]; const av=creator.schedule[0]; Object.entries(markerMap).forEach(([id,{el}])=>el.classList.toggle('active',Number(id)===creator.id||id===creator.id)); const avatar=document.getElementById('card-avatar'); avatar.textContent=creator.initials; avatar.style.cssText=`background:${meta.bg};border-color:${meta.color}`; document.getElementById('card-name').textContent=creator.name; document.getElementById('card-location').textContent=`📍 ${creator.location}`; const filled=Math.round(creator.rating); document.getElementById('card-rating').innerHTML=`<span style="color:${meta.color}">${'★'.repeat(filled)}${'☆'.repeat(5-filled)}</span> <span style="color:#6b7280;font-size:0.75rem">${creator.rating} (${creator.reviewCount} reviews)</span>`; document.getElementById('card-tags').innerHTML=creator.tags.map(t=>{const m=TAG_META[t];return`<span class="tag-chip" style="background:${m.color}18;color:${m.color};border-color:${m.color}40">${m.label}</span>`;}).join(''); document.getElementById('card-bio').textContent=creator.bio; document.getElementById('card-gear').innerHTML=creator.gear.map(g=>`<li class="gear-item"><span class="gear-dot">▸</span>${g}</li>`).join(''); const effectiveShowRates=creator.showRates; if(effectiveShowRates){document.getElementById('card-rates').innerHTML=[{label:'Half Day',val:`$${creator.rates.halfDay}`},{label:'Full Day',val:`$${creator.rates.fullDay}`},{label:'Custom',val:'On request'}].map(r=>`<div class="rate-box"><div class="rate-val">${r.val}</div><div class="rate-label">${r.label}</div></div>`).join('');document.getElementById('card-rates').style.display='flex';document.getElementById('card-rates-hidden').style.display='none';}else{document.getElementById('card-rates').style.display='none';document.getElementById('card-rates-hidden').style.display='flex';} const portUrl=creator.portfolioUrl; const portWrap=document.getElementById('card-portfolio-wrap'); if(portUrl){document.getElementById('card-portfolio-link').href=portUrl;portWrap.style.display='block';}else{portWrap.style.display='none';} const today=new Date(); document.getElementById('card-avail-grid').innerHTML=creator.schedule.map((open,i)=>{const d=new Date(today);d.setDate(today.getDate()+i);const label=i===0?'TODAY':DAY_ABBR[d.getDay()];return`<div class="avail-cell ${open?'avail-open':'avail-busy'} ${i===0?'avail-today':''}"><span class="avail-dname">${label}</span><span class="avail-dnum">${d.getDate()}</span><span class="avail-dot"></span></div>`;}).join(''); const bookBtn=document.getElementById('btn-book'); bookBtn.textContent=av?'Book Now':'Request Booking'; bookBtn.style.background=av?'#16a34a':'#374151'; document.getElementById('profile-card').classList.add('open'); document.getElementById('overlay').classList.add('active'); map.flyTo({center:[creator.lng,creator.lat],zoom:Math.max(map.getZoom(),11.5),pitch:52,duration:900,offset:[0,-120],essential:true}); }
 function closeCard(){ selectedId=null; document.getElementById('profile-card').classList.remove('open'); document.getElementById('overlay').classList.remove('active'); Object.values(markerMap).forEach(({el})=>el.classList.remove('active')); }
 function openBooking(){ if(!activeCreator)return; closeAllPanels(); const meta=TAG_META[activeCreator.primaryTag]; const ba=document.getElementById('booking-avatar'); ba.textContent=activeCreator.initials; ba.style.background=meta.bg; ba.style.borderColor=meta.color; ba.style.color=meta.color; document.getElementById('booking-name').textContent=activeCreator.name; document.getElementById('booking-location').textContent=activeCreator.location; document.getElementById('booking-type').value='snowboard'; document.getElementById('booking-date').value=''; document.getElementById('booking-notes').value=''; document.querySelectorAll('.deliverable-check').forEach(cb=>cb.checked=false); setDuration('half'); document.getElementById('booking-panel').classList.add('open'); }
 function closeBooking(){ document.getElementById('booking-panel').classList.remove('open'); }
 function setDuration(type){ document.querySelectorAll('.dur-btn').forEach(b=>{const active=b.dataset.type===type; b.style.background=active?'#818cf818':'#1f2937'; b.style.borderColor=active?'#818cf8':'#374151'; b.style.color=active?'#818cf8':'#9ca3af'; b.style.fontWeight=active?'600':'400';}); const price=type==='half'?activeCreator?.rates?.halfDay:type==='full'?activeCreator?.rates?.fullDay:null; document.getElementById('price-label').textContent=type==='half'?'Half day':type==='full'?'Full day':'Multi-day'; document.getElementById('price-amount').textContent=price?`${price}`:'Custom quote'; }
-function openMessages(){ closeAllPanels(); const list=document.getElementById('messages-list'); list.innerHTML=messages.map(m=>`<div onclick="openChat(${m.id})" style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid #1f2937;cursor:pointer;background:${m.unread?'#1a1f2e':'transparent'};"><div style="width:44px;height:44px;border-radius:50%;border:2px solid ${m.color};display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:700;background:${m.bg};color:${m.color};flex-shrink:0;">${m.initials}</div><div style="flex:1;min-width:0;"><div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:0.9rem;font-weight:600;">${m.from}</span><span style="font-size:0.75rem;color:#6b7280;">${m.time}</span></div><div style="font-size:0.8rem;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.preview}</div></div>${m.unread?'<div style="width:8px;height:8px;border-radius:50%;background:#818cf8;flex-shrink:0;"></div>':''}</div>`).join(''); document.getElementById('messages-panel').classList.add('open'); updateNotifBadge(); }
+
+// ─── MESSAGING (Supabase) ────────────────────────────────────────────────────
+
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function formatMsgTime(ts){
+  if(!ts)return '';
+  const d=new Date(ts), diff=Date.now()-d;
+  if(diff<3600000)return `${Math.max(1,Math.floor(diff/60000))}m ago`;
+  if(diff<86400000)return `${Math.floor(diff/3600000)}h ago`;
+  if(diff<172800000)return 'Yesterday';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+async function fetchAndOpenMessages(){
+  if(!currentUser){openLoginModal();return;}
+  closeAllPanels();
+  document.getElementById('messages-panel').classList.add('open');
+  const list=document.getElementById('messages-list');
+  list.innerHTML='<div style="padding:24px;color:#6b7280;text-align:center;font-size:.85rem;">Loading…</div>';
+
+  // Fetch messages sent by me and received by my profile in parallel
+  const [sentRes, receivedRes]=await Promise.all([
+    supabase.from('messages').select('*').eq('sender_id',currentUser.id).order('created_at',{ascending:false}),
+    userProfile
+      ? supabase.from('messages').select('*').eq('recipient_profile_id',userProfile.id).order('created_at',{ascending:false})
+      : Promise.resolve({data:[]})
+  ]);
+  const sent=sentRes.data||[], received=receivedRes.data||[];
+
+  // Look up sender profiles for received messages
+  const senderAuthIds=[...new Set(received.map(m=>m.sender_id))];
+  let senderMap={};
+  if(senderAuthIds.length){
+    const{data:sp}=await supabase.from('profiles').select('id,name,initials,primary_tag,user_id').in('user_id',senderAuthIds);
+    (sp||[]).forEach(p=>{senderMap[p.user_id]=p;});
+  }
+
+  // Look up recipient profiles for sent messages
+  const recipIds=[...new Set(sent.map(m=>m.recipient_profile_id).filter(Boolean))];
+  let recipMap={};
+  if(recipIds.length){
+    const{data:rp}=await supabase.from('profiles').select('id,name,initials,primary_tag').in('id',recipIds);
+    (rp||[]).forEach(p=>{recipMap[p.id]=p;});
+  }
+
+  // Build thread map keyed by the other party's profile id
+  const threadMap={};
+
+  for(const m of received){
+    const sp=senderMap[m.sender_id];
+    const key=sp?sp.id:('anon_'+m.sender_id);
+    if(!threadMap[key]||new Date(m.created_at)>new Date(threadMap[key].latestAt)){
+      threadMap[key]={profileId:sp?.id||null,latestAt:m.created_at,preview:m.body,unread:!m.read,name:sp?.name||'Unknown',initials:sp?.initials||'?',tag:sp?.primary_tag||'snowboard'};
+    } else if(!m.read){ threadMap[key].unread=true; }
+  }
+
+  for(const m of sent){
+    const rp=recipMap[m.recipient_profile_id];
+    if(!rp)continue;
+    const key='sent_'+rp.id;
+    // Don't overwrite a received-message thread (prefer showing received)
+    if(threadMap[rp.id])continue;
+    if(!threadMap[key]||new Date(m.created_at)>new Date(threadMap[key].latestAt)){
+      threadMap[key]={profileId:rp.id,latestAt:m.created_at,preview:m.body,unread:false,name:rp.name,initials:rp.initials,tag:rp.primary_tag};
+    }
+  }
+
+  const threads=Object.values(threadMap).sort((a,b)=>new Date(b.latestAt)-new Date(a.latestAt));
+  renderMessagesList(threads);
+  updateNotifBadge();
+}
+
+function renderMessagesList(threads){
+  const list=document.getElementById('messages-list');
+  if(!threads.length){
+    list.innerHTML='<div style="padding:40px 20px;color:#6b7280;text-align:center;font-size:.85rem;">No messages yet</div>';
+    return;
+  }
+  list.innerHTML=threads.map(t=>{
+    const meta=TAG_META[t.tag]||TAG_META['snowboard'];
+    return `<div class="msg-row" onclick="openChatWithProfileId('${t.profileId}')">
+      <div class="msg-avatar" style="background:${meta.bg};border:2px solid ${meta.color};color:${meta.color};">${escapeHtml(t.initials)}</div>
+      <div class="msg-info">
+        <div class="msg-meta"><span class="msg-from">${escapeHtml(t.name)}</span><span class="msg-time">${formatMsgTime(t.latestAt)}</span></div>
+        <div class="msg-preview">${escapeHtml(t.preview)}</div>
+      </div>
+      ${t.unread?'<div class="msg-unread-dot"></div>':''}
+    </div>`;
+  }).join('');
+}
+
+async function openChatWithProfileId(profileId){
+  if(!profileId){return;}
+  const found=creators.find(c=>c.id===profileId);
+  if(found){openChatWith(found);return;}
+  const{data}=await supabase.from('profiles').select('*').eq('id',profileId).single();
+  if(data)openChatWith(toCreator(data));
+}
+
+async function openChatWith(creator){
+  if(!currentUser){openLoginModal();return;}
+  closeAllPanels();
+  window._activeChatCreator=creator;
+  const meta=TAG_META[creator.primaryTag]||TAG_META['snowboard'];
+  document.getElementById('chat-title').textContent=creator.name;
+  const ca=document.getElementById('chat-avatar');
+  ca.textContent=creator.initials; ca.style.background=meta.bg; ca.style.borderColor=meta.color; ca.style.color=meta.color;
+  // Rate proposal button: only visible to creators (users with a profile)
+  const rateBtn=document.getElementById('rate-proposal-btn');
+  if(rateBtn)rateBtn.style.display=userProfile?'flex':'none';
+  const rpForm=document.getElementById('rate-proposal-form');
+  if(rpForm)rpForm.style.display='none';
+  document.getElementById('chat-bubbles').innerHTML='<div style="padding:24px;color:#6b7280;text-align:center;font-size:.85rem;">Loading…</div>';
+  document.getElementById('chat-panel').classList.add('open');
+  await loadChatMessages(creator.id, creator.userId);
+}
+
+async function loadChatMessages(creatorProfileId, creatorUserId){
+  if(!currentUser)return;
+  // Use cached userId if available, otherwise fetch it
+  let cUserId=creatorUserId;
+  if(!cUserId){
+    const{data}=await supabase.from('profiles').select('user_id').eq('id',creatorProfileId).single();
+    cUserId=data?.user_id;
+  }
+  // Fetch messages in both directions
+  let orFilter=`and(sender_id.eq.${currentUser.id},recipient_profile_id.eq.${creatorProfileId})`;
+  if(cUserId&&userProfile){
+    orFilter+=`,and(sender_id.eq.${cUserId},recipient_profile_id.eq.${userProfile.id})`;
+  }
+  const{data:msgs}=await supabase.from('messages').select('*').or(orFilter).order('created_at');
+  renderChatBubbles(msgs||[]);
+  // Mark received messages as read
+  if(userProfile&&cUserId){
+    supabase.from('messages').update({read:true}).eq('recipient_profile_id',userProfile.id).eq('sender_id',cUserId);
+  }
+}
+
+function renderChatBubbles(msgs){
+  const bubbles=document.getElementById('chat-bubbles');
+  if(!msgs.length){
+    bubbles.innerHTML='<div style="padding:40px 20px;color:#6b7280;text-align:center;font-size:.85rem;">No messages yet. Say hello! 👋</div>';
+    return;
+  }
+  bubbles.innerHTML=msgs.map(m=>{
+    const out=m.sender_id===currentUser?.id;
+    if(m.is_rate_proposal){
+      return `<div class="bubble-wrap ${out?'out':''}"><div class="bubble ${out?'out':'in'}"><div style="font-size:.7rem;font-weight:700;opacity:.75;margin-bottom:4px;">💰 Rate Proposal</div><div style="font-size:1.1rem;font-weight:800;">$${m.proposed_rate}</div><div style="font-size:.78rem;opacity:.8;margin-top:3px;">${escapeHtml(m.body)}</div></div></div>`;
+    }
+    return `<div class="bubble-wrap ${out?'out':''}"><div class="bubble ${out?'out':'in'}">${escapeHtml(m.body)}</div></div>`;
+  }).join('');
+  bubbles.scrollTop=bubbles.scrollHeight;
+}
+
+async function sendChatMessage(){
+  if(!currentUser)return;
+  const input=document.getElementById('chat-input');
+  const text=input.value.trim();
+  if(!text)return;
+  const creator=window._activeChatCreator;
+  if(!creator)return;
+  input.value='';
+  const{error}=await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:creator.id,body:text,is_rate_proposal:false,read:false}]);
+  if(error){showToast('Failed to send','#ef4444');input.value=text;return;}
+  await loadChatMessages(creator.id, creator.userId);
+}
+
+function toggleRateProposalForm(){
+  const form=document.getElementById('rate-proposal-form');
+  if(!form)return;
+  const show=form.style.display==='none'||!form.style.display;
+  form.style.display=show?'flex':'none';
+  if(show)document.getElementById('rate-proposal-input').focus();
+}
+
+async function sendRateProposal(){
+  if(!currentUser)return;
+  const creator=window._activeChatCreator;
+  if(!creator)return;
+  const rateInput=document.getElementById('rate-proposal-input');
+  const rate=parseInt(rateInput.value);
+  if(!rate||rate<=0){showToast('Enter a valid rate','#ef4444');return;}
+  rateInput.value='';
+  document.getElementById('rate-proposal-form').style.display='none';
+  const{error}=await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:creator.id,body:`Rate proposal: $${rate}`,is_rate_proposal:true,proposed_rate:rate,read:false}]);
+  if(error){showToast('Failed to send','#ef4444');return;}
+  await loadChatMessages(creator.id, creator.userId);
+}
+
 function closeMessages(){ document.getElementById('messages-panel').classList.remove('open'); }
-function openChat(msgId){ const msg=messages.find(m=>m.id===msgId); if(!msg)return; msg.unread=false; updateNotifBadge(); document.getElementById('chat-title').textContent=msg.from; const ca=document.getElementById('chat-avatar'); ca.textContent=msg.initials; ca.style.background=msg.bg; ca.style.borderColor=msg.color; ca.style.color=msg.color; const bubbles=document.getElementById('chat-bubbles'); bubbles.innerHTML=msg.thread.map(t=>`<div style="display:flex;justify-content:${t.out?'flex-end':'flex-start'};margin-bottom:8px;"><div style="max-width:76%;padding:10px 14px;border-radius:18px;font-size:0.875rem;line-height:1.5;background:${t.out?'#818cf8':'#1f2937'};color:${t.out?'#fff':'#f9fafb'};border-bottom-${t.out?'right':'left'}-radius:4px;">${t.text}</div></div>`).join(''); bubbles.scrollTop=bubbles.scrollHeight; window._activeChatId=msgId; document.getElementById('chat-panel').classList.add('open'); }
-function closeChat(){ document.getElementById('chat-panel').classList.remove('open'); openMessages(); }
-function sendChatMessage(){ const input=document.getElementById('chat-input'); const text=input.value.trim(); if(!text)return; const msg=messages.find(m=>m.id===window._activeChatId); if(msg)msg.thread.push({out:true,text}); const bubbles=document.getElementById('chat-bubbles'); bubbles.insertAdjacentHTML('beforeend',`<div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><div style="max-width:76%;padding:10px 14px;border-radius:18px;border-bottom-right-radius:4px;font-size:0.875rem;line-height:1.5;background:#818cf8;color:#fff;">${text}</div></div>`); input.value=''; bubbles.scrollTop=bubbles.scrollHeight; }
-function updateNotifBadge(){ const count=messages.filter(m=>m.unread).length; const badge=document.getElementById('notif-badge'); if(badge){badge.textContent=count;badge.style.display=count>0?'flex':'none';} }
-function openMyProfile(){ closeAllPanels(); const p=userProfile||myProfile; const meta=TAG_META[p.primaryTag]||TAG_META['snowboard']; const av=document.getElementById('mp-avatar'); av.textContent=p.initials; av.style.background=meta.bg; av.style.borderColor=meta.color; av.style.color=meta.color; document.getElementById('mp-name').textContent=p.name; document.getElementById('mp-location').textContent=p.location||''; document.getElementById('mp-bio').value=p.bio||''; const stats=userProfile?{views:0,inquiries:0,earnings:0}:myProfile.stats; document.getElementById('mp-views').textContent=stats.views; document.getElementById('mp-inquiries').textContent=stats.inquiries; document.getElementById('mp-earnings').textContent=`${(stats.earnings/1000).toFixed(1)}k`; document.getElementById('mp-half-rate').value=p.rates?.halfDay||''; document.getElementById('mp-full-rate').value=p.rates?.fullDay||''; document.getElementById('mp-tags').innerHTML=(p.tags||[]).map(t=>{const m=TAG_META[t];return m?`<span class="tag-chip" style="background:${m.color}18;color:${m.color};border-color:${m.color}40">${m.label}</span>`:''}).join(''); document.getElementById('mp-gear-list').innerHTML=(p.gear||[]).map((g,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1f2937;border-radius:8px;margin-bottom:6px;font-size:0.85rem;"><span>▸ ${g}</span><button onclick="removeGear(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;">×</button></div>`).join(''); document.getElementById('live-toggle').checked=p.isLive??true; updateLiveStatus(); document.getElementById('rates-visible-toggle').checked=p.showRates||false; updateRatesVisStatus(); document.getElementById('mp-portfolio-url').value=p.portfolioUrl||''; document.getElementById('my-profile-panel').classList.add('open'); }
+
+async function closeChat(){
+  document.getElementById('chat-panel').classList.remove('open');
+  const rpForm=document.getElementById('rate-proposal-form');
+  if(rpForm)rpForm.style.display='none';
+  if(currentUser)await fetchAndOpenMessages();
+}
+
+async function updateNotifBadge(){
+  const badge=document.getElementById('notif-badge');
+  if(!badge)return;
+  if(!currentUser||!userProfile){badge.style.display='none';return;}
+  const{count}=await supabase.from('messages').select('*',{count:'exact',head:true}).eq('recipient_profile_id',userProfile.id).eq('read',false);
+  badge.textContent=count||0;
+  badge.style.display=count>0?'flex':'none';
+}
+
+// ─── MY PROFILE ──────────────────────────────────────────────────────────────
+
+function openMyProfile(){ closeAllPanels(); const p=userProfile||myProfile; const meta=TAG_META[p.primaryTag]||TAG_META['snowboard']; const av=document.getElementById('mp-avatar'); av.textContent=p.initials; av.style.background=meta.bg; av.style.borderColor=meta.color; av.style.color=meta.color; document.getElementById('mp-name').textContent=p.name; document.getElementById('mp-location').textContent=p.location||''; document.getElementById('mp-bio').value=p.bio||''; const stats=userProfile?{views:0,inquiries:0,earnings:0}:myProfile.stats; document.getElementById('mp-views').textContent=stats.views; document.getElementById('mp-inquiries').textContent=stats.inquiries; document.getElementById('mp-earnings').textContent=`${(stats.earnings/1000).toFixed(1)}k`; document.getElementById('mp-half-rate').value=p.rates?.halfDay||''; document.getElementById('mp-full-rate').value=p.rates?.fullDay||''; document.getElementById('mp-tags').innerHTML=(p.tags||[]).map(t=>{const m=TAG_META[t];return m?`<span class="tag-chip" style="background:${m.color}18;color:${m.color};border-color:${m.color}40">${m.label}</span>`:''}).join(''); document.getElementById('mp-gear-list').innerHTML=(p.gear||[]).map((g,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1f2937;border-radius:8px;margin-bottom:6px;font-size:0.85rem;"><span>▸ ${escapeHtml(g)}</span><button onclick="removeGear(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;">×</button></div>`).join(''); document.getElementById('live-toggle').checked=p.isLive??true; updateLiveStatus(); document.getElementById('rates-visible-toggle').checked=p.showRates||false; updateRatesVisStatus(); document.getElementById('mp-portfolio-url').value=p.portfolioUrl||''; document.getElementById('my-profile-panel').classList.add('open'); }
 function closeMyProfile(){ document.getElementById('my-profile-panel').classList.remove('open'); }
 function removeGear(idx){ (userProfile||myProfile).gear.splice(idx,1); openMyProfile(); }
 function addGear(){ const input=document.getElementById('mp-gear-input'); const val=input.value.trim(); if(!val)return; (userProfile||myProfile).gear.push(val); input.value=''; openMyProfile(); showToast(`Added: ${val}`); }
@@ -61,11 +264,11 @@ document.getElementById('jn-show-rates').addEventListener('change',updateJnRates
 document.getElementById('join-submit').addEventListener('click',submitJoin);
 document.getElementById('close-btn').addEventListener('click',closeCard);
 document.getElementById('btn-book').addEventListener('click',e=>{e.stopPropagation();openBooking();});
-document.getElementById('btn-message').addEventListener('click',e=>{e.stopPropagation();openChat(1);});
+document.getElementById('btn-message').addEventListener('click',e=>{e.stopPropagation();if(!currentUser){openLoginModal();return;}openChatWith(activeCreator);});
 document.getElementById('booking-back').addEventListener('click',closeBooking);
 document.querySelectorAll('.dur-btn').forEach(btn=>btn.addEventListener('click',()=>setDuration(btn.dataset.type)));
 document.getElementById('send-booking-btn').addEventListener('click',()=>{ const btn=document.getElementById('send-booking-btn'); const name=activeCreator?.name; btn.textContent='Sending...'; btn.disabled=true; setTimeout(()=>{closeBooking();btn.textContent='Send booking request';btn.disabled=false;showToast(`Booking request sent to ${name}! ✓`);myProfile.stats.inquiries++;},1200); });
-document.getElementById('msg-btn').addEventListener('click',openMessages);
+document.getElementById('msg-btn').addEventListener('click',()=>{ if(!currentUser){openLoginModal();return;} fetchAndOpenMessages(); });
 document.getElementById('messages-back').addEventListener('click',closeMessages);
 document.getElementById('chat-back').addEventListener('click',closeChat);
 document.getElementById('chat-send').addEventListener('click',sendChatMessage);
@@ -85,7 +288,6 @@ card.addEventListener('touchmove',e=>{if(e.touches[0].clientY-touchStartY>60)clo
 const joinPanel=document.getElementById('join-panel');
 joinPanel.addEventListener('touchstart',e=>{touchStartY=e.touches[0].clientY;},{passive:true});
 joinPanel.addEventListener('touchmove',e=>{if(e.touches[0].clientY-touchStartY>80)closeJoin();},{passive:true});
-updateNotifBadge();
 document.getElementById('login-close').addEventListener('click',closeLoginModal);
 document.getElementById('login-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLoginModal();});
 document.getElementById('login-google').addEventListener('click',signInWithGoogle);
