@@ -271,6 +271,7 @@ document.getElementById('send-booking-btn').addEventListener('click',()=>{ const
 document.getElementById('msg-btn').addEventListener('click',()=>{ if(!currentUser){openLoginModal();return;} fetchAndOpenMessages(); });
 document.getElementById('messages-back').addEventListener('click',closeMessages);
 document.getElementById('chat-back').addEventListener('click',closeChat);
+document.getElementById('rate-proposal-btn').addEventListener('click',toggleRateProposalForm);
 document.getElementById('chat-send').addEventListener('click',sendChatMessage);
 document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendChatMessage();});
 document.getElementById('profile-btn').addEventListener('click',()=>{ if(!currentUser){openLoginModal();}else if(!userProfile){openJoin();}else{openMyProfile();} });

@@ -658,7 +658,7 @@
 <div id="overlay"></div>
 
 <!-- ══ PROFILE CARD (bottom sheet) ══════════════════════ -->
-<div id="profile-card">
+<div id="profile-card" style="max-height:90vh;overflow-y:auto">
   <div class="drag-handle"></div>
   <div class="card-hero">
     <div id="card-avatar">?</div>
@@ -701,7 +701,7 @@
 </div>
 
 <!-- ══ BOOKING PANEL (right slide) ══════════════════════ -->
-<div class="side-panel" id="booking-panel">
+<div class="side-panel" id="booking-panel" style="max-height:90vh;overflow-y:auto">
   <div class="panel-hdr">
     <button class="panel-back" id="booking-back">‹</button>
     <span class="panel-title">Book Creator</span>
@@ -761,7 +761,7 @@
 </div>
 
 <!-- ══ MESSAGES PANEL (right slide) ══════════════════════ -->
-<div class="side-panel" id="messages-panel">
+<div class="side-panel" id="messages-panel" style="max-height:90vh;overflow-y:auto">
   <div class="panel-hdr">
     <button class="panel-back" id="messages-back">✕</button>
     <span class="panel-title">Messages</span>
@@ -781,12 +781,12 @@
   <div id="chat-bubbles"></div>
   <div class="chat-footer">
     <div id="rate-proposal-form">
-      <input type="number" id="rate-proposal-input" placeholder="Propose a rate ($)" />
+      <input type="number" id="rate-proposal-input" placeholder="$400" />
       <button id="rate-proposal-send" onclick="sendRateProposal()">Send Rate →</button>
     </div>
     <div class="chat-input-row">
       <input type="text" id="chat-input" placeholder="Message…" />
-      <button id="rate-proposal-btn" onclick="toggleRateProposalForm()" title="Propose a rate">$</button>
+      <button id="rate-proposal-btn" title="Propose a rate">💰 Send Rate</button>
       <button id="chat-send">➤</button>
     </div>
   </div>
@@ -913,7 +913,7 @@
   </div>
 </div>
 
-<div id="join-panel">
+<div id="join-panel" style="max-height:90vh;overflow-y:auto">
   <div class="drag-handle"></div>
   <div class="join-hdr">
     <span class="join-title">Join the map</span>
@@ -988,7 +988,7 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script type="module" src="src/app.js?v=38"></script>
+<script type="module" src="src/app.js?v=39"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
