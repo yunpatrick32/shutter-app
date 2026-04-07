@@ -280,6 +280,7 @@ document.getElementById('chat-send').addEventListener('click',sendChatMessage);
 document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendChatMessage();});
 document.getElementById('profile-btn').addEventListener('click',()=>{ if(!currentUser){openLoginModal();}else if(!userProfile){openJoin();}else{openMyProfile();} });
 document.getElementById('mp-close').addEventListener('click',closeMyProfile);
+document.getElementById('mp-invite-btn').addEventListener('click',()=>{ const shareUrl='https://shutter-app.netlify.app'; const shareText='Join me on Shutter — the map for outdoor creators around Lake Tahoe 🏔️'; if(navigator.share){navigator.share({title:'Join Shutter',text:shareText,url:shareUrl});}else{navigator.clipboard.writeText(shareUrl).then(()=>showToast('Link copied! 📋'));} });
 document.getElementById('mp-signout').addEventListener('click',async()=>{ await supabase.auth.signOut(); closeMyProfile(); showToast('Signed out'); });
 document.getElementById('mp-save').addEventListener('click',saveProfile);
 document.getElementById('mp-add-gear').addEventListener('click',addGear);
