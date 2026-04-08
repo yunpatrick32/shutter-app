@@ -283,8 +283,10 @@ document.getElementById('rate-proposal-btn').addEventListener('click',toggleRate
 function openLocationPicker(){
   if(!userProfile){showToast('Sign in first','#ef4444');return;}
   closeMyProfile();
+  map.dragPan.enable();
+  map.scrollZoom.enable();
+  map.touchZoomRotate.enable();
   document.getElementById('location-picker').classList.add('active');
-  // Fly to current profile location so user sees their pin
   map.flyTo({center:[userProfile.lng,userProfile.lat],zoom:13,duration:800});
 }
 function closeLocationPicker(){
