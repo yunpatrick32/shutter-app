@@ -200,6 +200,8 @@ async function sendChatMessage(){
   input.value='';
   const{error}=await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:creator.id,body:text,is_rate_proposal:false,read:false}]);
   if(error){showToast('Failed to send','#ef4444');input.value=text;return;}
+  // Fire-and-forget — don't block the UI on email delivery
+  supabase.functions.invoke('notify-message',{body:{recipientProfileId:creator.id,senderName:userProfile?.name||'Someone',messageBody:text}}).catch(()=>{});
   await loadChatMessages(creator.id, creator.userId);
 }
 
