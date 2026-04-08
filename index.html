@@ -620,6 +620,61 @@
     #login-send:disabled { opacity: .45; cursor: not-allowed; }
     #login-sent { font-size: .85rem; color: #34d399; text-align: center; }
 
+    /* ─── LOCATION PICKER ───────────────────────────────── */
+    #location-picker {
+      position: fixed; inset: 0; z-index: 50;
+      pointer-events: all;
+      display: none;
+    }
+    #location-picker.active { display: block; }
+    #location-picker-banner {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+      padding: 14px 18px;
+      padding-top: calc(14px + env(safe-area-inset-top, 0px));
+      background: linear-gradient(to bottom, rgba(10,14,26,.95) 70%, transparent);
+      text-align: center;
+    }
+    #location-picker-banner p {
+      font-size: .88rem; color: #f9fafb; font-weight: 600;
+      text-shadow: 0 1px 4px rgba(0,0,0,.8);
+    }
+    #location-picker-cancel {
+      margin-top: 8px; background: none; border: 1px solid rgba(255,255,255,.2);
+      border-radius: 20px; color: #9ca3af; font-size: .8rem; padding: 5px 14px;
+      cursor: pointer;
+    }
+    #location-picker-crosshair {
+      position: absolute; top: 50%; left: 50%; z-index: 2;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    #location-picker-crosshair::before,
+    #location-picker-crosshair::after {
+      content: ''; position: absolute; background: #818cf8;
+    }
+    #location-picker-crosshair::before { width: 2px; height: 28px; left: -1px; top: -14px; }
+    #location-picker-crosshair::after  { width: 28px; height: 2px; top: -1px; left: -14px; }
+    #location-picker-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #818cf8; border: 2px solid #fff;
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 4px rgba(129,140,248,.3);
+      pointer-events: none; z-index: 2;
+    }
+    #location-picker-confirm {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
+      padding: 16px 24px;
+      padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      background: linear-gradient(to top, rgba(10,14,26,.95) 70%, transparent);
+      display: flex; justify-content: center;
+    }
+    #location-picker-confirm button {
+      background: #818cf8; color: #fff; border: none; border-radius: 14px;
+      padding: 14px 40px; font-size: .95rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(129,140,248,.45);
+    }
+
     /* ─── AVATAR UPLOAD ─────────────────────────────────── */
     .avatar-upload-wrap {
       position: relative; width: 76px; height: 76px; flex-shrink: 0;
@@ -919,6 +974,7 @@
       </div>
       <!-- save -->
       <button id="mp-save">Save Profile</button>
+      <button id="mp-set-location" style="width:100%;padding:13px;border:1px solid #374151;border-radius:12px;background:transparent;color:#9ca3af;font-size:.92rem;font-weight:600;cursor:pointer;margin-top:8px;transition:color .15s,border-color .15s;">📍 Set my location on map</button>
       <button id="mp-signout" style="width:100%;padding:13px;border:1px solid #374151;border-radius:12px;background:transparent;color:#6b7280;font-size:.92rem;font-weight:600;cursor:pointer;margin-top:8px;transition:color .15s,border-color .15s;">Sign out</button>
     </div>
   </div>
@@ -1030,8 +1086,21 @@
 <!-- ══ TOAST ═══════════════════════════════════════════ -->
 <div id="toast"></div>
 
+<!-- ══ LOCATION PICKER OVERLAY ══════════════════════════ -->
+<div id="location-picker">
+  <div id="location-picker-banner">
+    <p>Drag the map to your location</p>
+    <button id="location-picker-cancel">✕ Cancel</button>
+  </div>
+  <div id="location-picker-crosshair"></div>
+  <div id="location-picker-dot"></div>
+  <div id="location-picker-confirm">
+    <button id="location-picker-confirm-btn">Confirm Location</button>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script type="module" src="src/app.js?v=43"></script>
+<script type="module" src="src/app.js?v=44"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>

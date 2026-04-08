@@ -279,6 +279,30 @@ document.getElementById('msg-btn').addEventListener('click',()=>{ if(!currentUse
 document.getElementById('messages-back').addEventListener('click',closeMessages);
 document.getElementById('chat-back').addEventListener('click',closeChat);
 document.getElementById('rate-proposal-btn').addEventListener('click',toggleRateProposalForm);
+// ─── LOCATION PICKER ────────────────────────────────────────────────────────
+function openLocationPicker(){
+  if(!userProfile){showToast('Sign in first','#ef4444');return;}
+  closeMyProfile();
+  document.getElementById('location-picker').classList.add('active');
+  // Fly to current profile location so user sees their pin
+  map.flyTo({center:[userProfile.lng,userProfile.lat],zoom:13,duration:800});
+}
+function closeLocationPicker(){
+  document.getElementById('location-picker').classList.remove('active');
+}
+async function confirmLocation(){
+  const{lng,lat}=map.getCenter();
+  const{error}=await supabase.from('profiles').update({lat,lng}).eq('id',userProfile.id);
+  if(error){showToast('Failed to update location','#ef4444');return;}
+  userProfile.lat=lat; userProfile.lng=lng;
+  closeLocationPicker();
+  fetchAndRender();
+  showToast('📍 Pin location updated!');
+}
+document.getElementById('mp-set-location').addEventListener('click',openLocationPicker);
+document.getElementById('location-picker-cancel').addEventListener('click',()=>{ closeLocationPicker(); openMyProfile(); });
+document.getElementById('location-picker-confirm-btn').addEventListener('click',confirmLocation);
+
 window.openChatWithProfileId=openChatWithProfileId;
 window.removeGear=removeGear;
 window.sendRateProposal=sendRateProposal;
