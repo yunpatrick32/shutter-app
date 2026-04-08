@@ -687,10 +687,11 @@
   <div class="card-hero">
     <div id="card-avatar">?</div>
     <div class="card-meta">
-      <div id="card-name">—</div>
+      <div id="card-name-row" style="display:flex;align-items:center;gap:6px;"><span id="card-name">—</span><span id="card-verified" style="display:none;width:16px;height:16px;border-radius:50%;background:#818cf8;color:#fff;font-size:.6rem;display:none;align-items:center;justify-content:center;flex-shrink:0;">✓</span></div>
       <div id="card-location"></div>
       <div id="card-rating"></div>
       <div id="card-tags"></div>
+      <div id="card-instagram" style="display:none;margin-top:6px;"></div>
     </div>
     <button id="close-btn">✕</button>
   </div>
@@ -1012,8 +1013,12 @@
       </label>
     </div>
     <div class="fgroup">
+      <label>Instagram <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:#6b7280">(optional)</span></label>
+      <input type="text" class="finput" id="jn-instagram" placeholder="@yourhandle" />
+    </div>
+    <div class="fgroup">
       <label>Portfolio URL <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:#6b7280">(optional)</span></label>
-      <input type="url" class="finput" id="jn-portfolio-url" placeholder="https://yoursite.com or instagram.com/handle" />
+      <input type="url" class="finput" id="jn-portfolio-url" placeholder="https://yoursite.com" />
     </div>
   </div>
   <button id="join-submit">Add me to the map</button>
@@ -1026,7 +1031,7 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script type="module" src="src/app.js?v=42"></script>
+<script type="module" src="src/app.js?v=43"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
