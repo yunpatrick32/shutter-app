@@ -155,20 +155,23 @@ async function openChatWith(creator){
 
 async function loadChatMessages(creatorProfileId, creatorUserId){
   if(!currentUser)return;
-  // Use cached userId if available, otherwise fetch it
   let cUserId=creatorUserId;
   if(!cUserId){
     const{data}=await supabase.from('profiles').select('user_id').eq('id',creatorProfileId).single();
     cUserId=data?.user_id;
   }
-  // Fetch messages in both directions
-  let orFilter=`and(sender_id.eq.${currentUser.id},recipient_profile_id.eq.${creatorProfileId})`;
-  if(cUserId&&userProfile){
-    orFilter+=`,and(sender_id.eq.${cUserId},recipient_profile_id.eq.${userProfile.id})`;
+  // Query 1: messages I sent to this creator
+  const{data:sent}=await supabase.from('messages').select('*').eq('sender_id',currentUser.id).eq('recipient_profile_id',creatorProfileId).order('created_at');
+  // Query 2: messages this creator sent to me
+  let received=[];
+  if(userProfile&&cUserId){
+    const{data}=await supabase.from('messages').select('*').eq('sender_id',cUserId).eq('recipient_profile_id',userProfile.id).order('created_at');
+    received=data||[];
   }
-  const{data:msgs}=await supabase.from('messages').select('*').or(orFilter).order('created_at');
-  renderChatBubbles(msgs||[]);
-  // Mark received messages as read
+  // Merge and sort by created_at
+  const all=[...(sent||[]),...received].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  renderChatBubbles(all);
+  // Mark received as read
   if(userProfile&&cUserId){
     supabase.from('messages').update({read:true}).eq('recipient_profile_id',userProfile.id).eq('sender_id',cUserId);
   }
@@ -183,7 +186,7 @@ function renderChatBubbles(msgs){
   bubbles.innerHTML=msgs.map(m=>{
     const out=m.sender_id===currentUser?.id;
     if(m.is_rate_proposal){
-      return `<div class="bubble-wrap ${out?'out':''}"><div class="bubble ${out?'out':'in'}"><div style="font-size:.7rem;font-weight:700;opacity:.75;margin-bottom:4px;">💰 Rate Proposal</div><div style="font-size:1.1rem;font-weight:800;">$${m.proposed_rate}</div><div style="font-size:.78rem;opacity:.8;margin-top:3px;">${escapeHtml(m.body)}</div></div></div>`;
+      return `<div class="bubble-wrap ${out?'out':''}"><div class="bubble ${out?'out':'in'}"><div style="font-size:.7rem;font-weight:700;opacity:.75;margin-bottom:4px;">💰 Offer</div><div style="font-size:1.1rem;font-weight:800;">$${m.proposed_rate}</div><div style="font-size:.78rem;opacity:.8;margin-top:3px;">${escapeHtml(m.body)}</div></div></div>`;
     }
     return `<div class="bubble-wrap ${out?'out':''}"><div class="bubble ${out?'out':'in'}">${escapeHtml(m.body)}</div></div>`;
   }).join('');
@@ -222,7 +225,7 @@ async function sendRateProposal(){
   if(!rate||rate<=0){showToast('Enter a valid rate','#ef4444');return;}
   rateInput.value='';
   document.getElementById('rate-proposal-form').style.display='none';
-  const{error}=await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:creator.id,body:`Rate proposal: $${rate}`,is_rate_proposal:true,proposed_rate:rate,read:false}]);
+  const{error}=await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:creator.id,body:`Offer: $${rate}`,is_rate_proposal:true,proposed_rate:rate,read:false}]);
   if(error){showToast('Failed to send','#ef4444');return;}
   await loadChatMessages(creator.id, creator.userId);
 }
