@@ -744,6 +744,55 @@
       font-size: .65rem; cursor: pointer;
     }
 
+    /* ─── PORTFOLIO GRID ─────────────────────────────── */
+    .mp-portfolio-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+    }
+    .mp-portfolio-cell {
+      aspect-ratio: 1; border-radius: 10px; overflow: hidden; position: relative;
+      cursor: pointer; background: #0d1117; border: 1.5px dashed #374151;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .15s; -webkit-tap-highlight-color: transparent;
+    }
+    .mp-portfolio-cell:hover { border-color: #818cf8; }
+    .mp-portfolio-cell.filled { border: none; }
+    .mp-portfolio-cell img { width:100%;height:100%;object-fit:cover;display:block;pointer-events:none; }
+    .mp-photo-add { font-size: 1.5rem; color: #4b5563; pointer-events: none; }
+    .mp-photo-rm {
+      position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
+      border-radius: 50%; background: rgba(0,0,0,.8); border: none; color: #fff;
+      font-size: .65rem; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; z-index: 2;
+    }
+    .card-photo-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 6px;
+    }
+    .card-photo-cell {
+      aspect-ratio: 1; border-radius: 7px; overflow: hidden;
+      background: #0d1117; cursor: pointer;
+    }
+    .card-photo-cell img { width:100%;height:100%;object-fit:cover;display:block;transition:opacity .15s; }
+    .card-photo-cell img:hover { opacity: .82; }
+    #photo-lightbox {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,.94); display: none;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #photo-lightbox.open { display: flex; }
+    #photo-lightbox-img {
+      max-width: 100%; max-height: 88vh;
+      border-radius: 10px; object-fit: contain;
+      box-shadow: 0 8px 40px rgba(0,0,0,.8);
+    }
+    #lightbox-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.15);
+      color: #fff; font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
     /* ─── SCROLLBARS ──────────────────────────────────── */
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -802,6 +851,10 @@
   <div class="card-sec">
     <div class="sec-label">Gear</div>
     <ul id="card-gear"></ul>
+  </div>
+  <div class="card-sec" id="card-photos-wrap" style="display:none;">
+    <div class="sec-label">Work</div>
+    <div class="card-photo-grid" id="card-photo-grid"></div>
   </div>
   <div class="card-sec">
     <div class="sec-label">Rates</div>
@@ -999,6 +1052,11 @@
           <button id="mp-add-gear">+ Add</button>
         </div>
       </div>
+      <!-- portfolio photos -->
+      <div>
+        <div class="sec-label" style="margin-bottom:8px;">Portfolio Photos <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.72rem;color:#6b7280">(up to 6)</span></div>
+        <div class="mp-portfolio-grid" id="mp-portfolio-grid"></div>
+      </div>
       <!-- tags -->
       <div>
         <div class="sec-label" style="margin-bottom:8px;">Tags</div>
@@ -1162,7 +1220,13 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script type="module" src="src/app.js?v=49"></script>
+<!-- ══ PHOTO LIGHTBOX ════════════════════════════════════ -->
+<div id="photo-lightbox">
+  <button id="lightbox-close">✕</button>
+  <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
+</div>
+
+<script type="module" src="src/app.js?v=50"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
