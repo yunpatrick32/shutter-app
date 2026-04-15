@@ -468,4 +468,20 @@ document.getElementById('login-modal').addEventListener('click',e=>{if(e.target=
 document.getElementById('login-google').addEventListener('click',signInWithGoogle);
 document.getElementById('login-send').addEventListener('click',sendMagicLink);
 document.getElementById('login-email').addEventListener('keydown',e=>{if(e.key==='Enter')sendMagicLink();});
+document.getElementById('locate-btn').addEventListener('click',()=>{
+  if(!navigator.geolocation){showToast('Geolocation not supported','#ef4444');return;}
+  const btn=document.getElementById('locate-btn');
+  btn.style.transform='scale(0.9)'; btn.textContent='⏳';
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      btn.style.transform='scale(1)'; btn.textContent='🧭';
+      map.flyTo({center:[pos.coords.longitude,pos.coords.latitude],zoom:13,pitch:50,duration:1200,essential:true});
+    },
+    ()=>{
+      btn.style.transform='scale(1)'; btn.textContent='🧭';
+      showToast('Could not get your location','#ef4444');
+    },
+    {timeout:8000,enableHighAccuracy:true}
+  );
+});
 initAuth();
