@@ -1235,14 +1235,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- ══ PHOTO LIGHTBOX ════════════════════════════════════ -->
-<button id="locate-btn" title="Find my location" style="position:fixed;bottom:120px;right:16px;width:44px;height:44px;border-radius:12px;background:rgba(13,13,20,0.9);border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.3rem;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.4);transition:transform 0.2s,background 0.2s;">🧭</button>
+<button id="locate-btn" title="Find my location" style="position:fixed;bottom:120px;right:16px;width:44px;height:44px;border-radius:12px;background:rgba(13,13,20,0.9);border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.4);transition:transform 0.2s,background 0.2s;">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2L4.5 20.5L12 17L19.5 20.5L12 2Z" fill="#818cf8" stroke="#818cf8" stroke-width="1.5" stroke-linejoin="round"/>
+  </svg>
+</button>
 
 <div id="photo-lightbox">
   <button id="lightbox-close">✕</button>
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=54"></script>
+<script type="module" src="src/app.js?v=55"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>

@@ -471,14 +471,14 @@ document.getElementById('login-email').addEventListener('keydown',e=>{if(e.key==
 document.getElementById('locate-btn').addEventListener('click',()=>{
   if(!navigator.geolocation){showToast('Geolocation not supported','#ef4444');return;}
   const btn=document.getElementById('locate-btn');
-  btn.style.transform='scale(0.9)'; btn.textContent='⏳';
+  btn.style.transform='scale(0.9)'; btn.style.opacity='0.5';
   navigator.geolocation.getCurrentPosition(
     pos=>{
-      btn.style.transform='scale(1)'; btn.textContent='🧭';
+      btn.style.transform='scale(1)'; btn.style.opacity='1';
       map.flyTo({center:[pos.coords.longitude,pos.coords.latitude],zoom:13,pitch:50,duration:1200,essential:true});
     },
     ()=>{
-      btn.style.transform='scale(1)'; btn.textContent='🧭';
+      btn.style.transform='scale(1)'; btn.style.opacity='1';
       showToast('Could not get your location','#ef4444');
     },
     {timeout:8000,enableHighAccuracy:true}
