@@ -17,7 +17,6 @@
       width: 100%; height: 100%;
       margin: 0; padding: 0;
       background: #0a0a0f;
-      padding-bottom: env(safe-area-inset-bottom);
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #0a0e1a;
@@ -27,10 +26,7 @@
     /* ─── MAP ─────────────────────────────────────────── */
     #map {
       position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      height: 100dvh;
+      inset: 0;
     }
 
     /* ─── HEADER ──────────────────────────────────────── */
@@ -1240,7 +1236,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=52"></script>
+<script type="module" src="src/app.js?v=53"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
