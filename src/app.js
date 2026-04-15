@@ -310,7 +310,7 @@ document.getElementById('location-picker-confirm-btn').addEventListener('click',
 function renderMpPortfolioGrid(){
   const grid=document.getElementById('mp-portfolio-grid');
   if(!grid||!userProfile)return;
-  const photos=userProfile.portfolioPhotos||[];
+  const photos=(userProfile.portfolioPhotos||[]).filter(Boolean);
   grid.innerHTML='';
   for(let i=0;i<6;i++){
     const url=photos[i]||null;
@@ -319,30 +319,33 @@ function renderMpPortfolioGrid(){
     if(url){
       cell.innerHTML=`<img src="${url}" /><button class="mp-photo-rm" onclick="removePortfolioPhoto(${i})">✕</button>`;
     }else{
+      // Use <label> wrapping the input — required for iOS Safari to open file picker
+      const label=document.createElement('label');
+      label.style.cssText='position:absolute;inset:0;cursor:pointer;display:flex;align-items:center;justify-content:center;';
       const input=document.createElement('input');
-      input.type='file'; input.accept='image/*';
-      input.addEventListener('change',e=>{const f=e.target.files[0];if(f)uploadPortfolioPhoto(i,f);});
+      input.type='file'; input.accept='image/*'; input.style.display='none';
+      input.addEventListener('change',e=>{const f=e.target.files[0];if(f)uploadPortfolioPhoto(f);});
       const plus=document.createElement('span');
       plus.className='mp-photo-add'; plus.textContent='+';
-      cell.appendChild(plus); cell.appendChild(input);
-      cell.addEventListener('click',()=>input.click());
+      label.appendChild(plus); label.appendChild(input);
+      cell.appendChild(label);
     }
     grid.appendChild(cell);
   }
 }
-async function uploadPortfolioPhoto(index,file){
+async function uploadPortfolioPhoto(file){
   if(!userProfile||!currentUser){showToast('Sign in first','#ef4444');return;}
   showToast('Uploading…','#818cf8');
-  const path=`${currentUser.id}/${index}.jpg`;
-  const{error}=await supabase.storage.from('portfolio').upload(path,file,{upsert:true,contentType:file.type});
+  // Unique path per upload — avoids stale cache and path conflicts
+  const ext=file.name.split('.').pop()||'jpg';
+  const path=`${currentUser.id}/${Date.now()}.${ext}`;
+  const{error}=await supabase.storage.from('portfolio').upload(path,file,{contentType:file.type});
   if(error){console.error('Storage upload error:',error);showToast(`Upload failed: ${error.message}`,'#ef4444');return;}
-  // Add cache-bust so browser doesn't serve a stale version of the same path
-  const baseUrl=supabase.storage.from('portfolio').getPublicUrl(path).data.publicUrl;
-  const url=`${baseUrl}?t=${Date.now()}`;
-  const photos=[...(userProfile.portfolioPhotos||[])];
-  while(photos.length<=index)photos.push(null);
-  photos[index]=url;
-  const{error:dbErr}=await supabase.from('profiles').update({portfolio_photos:photos.filter(Boolean)}).eq('id',userProfile.id);
+  const url=supabase.storage.from('portfolio').getPublicUrl(path).data.publicUrl;
+  const photos=[...(userProfile.portfolioPhotos||[]).filter(Boolean)];
+  if(photos.length>=6){showToast('Max 6 photos reached','#ef4444');return;}
+  photos.push(url);
+  const{error:dbErr}=await supabase.from('profiles').update({portfolio_photos:photos}).eq('id',userProfile.id);
   if(dbErr){console.error('DB update error:',dbErr);showToast(`Save failed: ${dbErr.message}`,'#ef4444');return;}
   userProfile.portfolioPhotos=photos;
   renderMpPortfolioGrid();
@@ -350,11 +353,10 @@ async function uploadPortfolioPhoto(index,file){
 }
 async function removePortfolioPhoto(index){
   if(!userProfile)return;
-  const photos=[...(userProfile.portfolioPhotos||[])];
-  photos[index]=null;
-  const filtered=photos.filter(Boolean);
-  await supabase.from('profiles').update({portfolio_photos:filtered}).eq('id',userProfile.id);
-  userProfile.portfolioPhotos=filtered;
+  const photos=(userProfile.portfolioPhotos||[]).filter(Boolean);
+  photos.splice(index,1);
+  await supabase.from('profiles').update({portfolio_photos:photos}).eq('id',userProfile.id);
+  userProfile.portfolioPhotos=photos;
   renderMpPortfolioGrid();
   showToast('Photo removed','#6b7280');
 }
