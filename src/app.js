@@ -335,13 +335,15 @@ async function uploadPortfolioPhoto(index,file){
   showToast('Uploading…','#818cf8');
   const path=`${currentUser.id}/${index}.jpg`;
   const{error}=await supabase.storage.from('portfolio').upload(path,file,{upsert:true,contentType:file.type});
-  if(error){showToast('Upload failed','#ef4444');return;}
-  const url=supabase.storage.from('portfolio').getPublicUrl(path).data.publicUrl;
+  if(error){console.error('Storage upload error:',error);showToast(`Upload failed: ${error.message}`,'#ef4444');return;}
+  // Add cache-bust so browser doesn't serve a stale version of the same path
+  const baseUrl=supabase.storage.from('portfolio').getPublicUrl(path).data.publicUrl;
+  const url=`${baseUrl}?t=${Date.now()}`;
   const photos=[...(userProfile.portfolioPhotos||[])];
   while(photos.length<=index)photos.push(null);
   photos[index]=url;
   const{error:dbErr}=await supabase.from('profiles').update({portfolio_photos:photos.filter(Boolean)}).eq('id',userProfile.id);
-  if(dbErr){showToast('Save failed','#ef4444');return;}
+  if(dbErr){console.error('DB update error:',dbErr);showToast(`Save failed: ${dbErr.message}`,'#ef4444');return;}
   userProfile.portfolioPhotos=photos;
   renderMpPortfolioGrid();
   showToast('Photo added ✓');
