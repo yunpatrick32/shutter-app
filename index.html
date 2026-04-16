@@ -914,49 +914,60 @@
         <div id="booking-location"></div>
       </div>
     </div>
-    <div class="bform">
-      <div class="fgroup">
-        <label>Shoot Type</label>
-        <select class="fselect" id="booking-type">
-          <option value="snowboard">Snowboard</option>
-          <option value="ski">Ski</option>
-          <option value="photo">Photo</option>
-          <option value="video">Video</option>
-          <option value="drone">Drone</option>
-          <option value="model">Model</option>
-        </select>
-      </div>
-      <div class="fgroup">
-        <label>Duration</label>
-        <div class="dur-row">
-          <button class="dur-btn" data-type="half">Half Day</button>
-          <button class="dur-btn" data-type="full">Full Day</button>
-          <button class="dur-btn" data-type="multi">Custom</button>
+    <!-- Step 1: booking details -->
+    <div id="booking-details-step">
+      <div class="bform">
+        <div class="fgroup">
+          <label>Shoot Type</label>
+          <select class="fselect" id="booking-type">
+            <option value="snowboard">Snowboard</option>
+            <option value="ski">Ski</option>
+            <option value="photo">Photo</option>
+            <option value="video">Video</option>
+            <option value="drone">Drone</option>
+            <option value="model">Model</option>
+          </select>
+        </div>
+        <div class="fgroup">
+          <label>Duration</label>
+          <div class="dur-row">
+            <button class="dur-btn" data-type="half">Half Day</button>
+            <button class="dur-btn" data-type="full">Full Day</button>
+            <button class="dur-btn" data-type="multi">Custom</button>
+          </div>
+        </div>
+        <div class="fgroup">
+          <label>Date</label>
+          <input type="date" class="finput" id="booking-date" />
+        </div>
+        <div class="fgroup">
+          <label>Deliverables</label>
+          <div class="deliverables">
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Highlight Reel</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Raw Footage</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Photos</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Drone Shots</label>
+          </div>
+        </div>
+        <div class="fgroup">
+          <label>Notes</label>
+          <textarea class="ftextarea" id="booking-notes" placeholder="Location details, special requests…"></textarea>
+        </div>
+        <div class="price-row">
+          <span id="price-label">Half day</span>
+          <span id="price-amount">—</span>
         </div>
       </div>
-      <div class="fgroup">
-        <label>Date</label>
-        <input type="date" class="finput" id="booking-date" />
-      </div>
-      <div class="fgroup">
-        <label>Deliverables</label>
-        <div class="deliverables">
-          <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Highlight Reel</label>
-          <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Raw Footage</label>
-          <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Photos</label>
-          <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Drone Shots</label>
-        </div>
-      </div>
-      <div class="fgroup">
-        <label>Notes</label>
-        <textarea class="ftextarea" id="booking-notes" placeholder="Location details, special requests…"></textarea>
-      </div>
-      <div class="price-row">
-        <span id="price-label">Half day</span>
-        <span id="price-amount">—</span>
-      </div>
+      <button id="send-booking-btn">Send Booking Request</button>
     </div>
-    <button id="send-booking-btn">Send Booking Request</button>
+
+    <!-- Step 2: payment (hidden until creator has Stripe + known price) -->
+    <div id="booking-payment-step" style="display:none;">
+      <div id="booking-price-breakdown" style="background:#111827;border-radius:12px;padding:16px;margin-bottom:16px;font-size:.85rem;color:#d1d5db;line-height:1.6;"></div>
+      <div id="payment-element" style="margin-bottom:8px;"></div>
+      <div id="payment-message" style="display:none;color:#ef4444;font-size:.82rem;margin-bottom:10px;text-align:center;padding:8px;background:#2d0a0a;border-radius:8px;"></div>
+      <button id="confirm-pay-btn" style="width:100%;padding:16px;background:#16a34a;color:#fff;font-size:1rem;font-weight:700;border:none;border-radius:14px;cursor:pointer;margin-top:4px;">Confirm &amp; Pay</button>
+    </div>
   </div>
 </div>
 
@@ -1002,6 +1013,14 @@
     <div id="mp-invite-banner">
       <div id="mp-invite-text">Invite a creator to Shutter</div>
       <button id="mp-invite-btn">Share signup link ↗</button>
+    </div>
+    <div id="mp-payout-banner" style="display:none;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(129,140,248,.35);border-radius:12px;padding:14px 16px;margin-bottom:14px;align-items:center;gap:12px;">
+      <span style="font-size:1.3rem;flex-shrink:0;">💳</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.85rem;font-weight:700;color:#f9fafb;">Add your payout account</div>
+        <div style="font-size:.75rem;color:#6b7280;margin-top:2px;">Start receiving payments from clients</div>
+      </div>
+      <button id="mp-payout-btn" onclick="startStripeOnboarding()" style="background:#818cf8;color:#fff;border:none;border-radius:8px;padding:8px 13px;font-size:.78rem;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;">Set up payouts</button>
     </div>
     <div class="mp-hero">
       <div style="position:relative;flex-shrink:0;">
@@ -1279,6 +1298,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
 <!-- ══ PHOTO LIGHTBOX ════════════════════════════════════ -->
 <button id="locate-btn" title="Find my location" style="position:fixed;bottom:120px;right:16px;width:44px;height:44px;border-radius:12px;background:rgba(13,13,20,0.9);border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.4);transition:transform 0.2s,background 0.2s;">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1291,7 +1311,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=71"></script>
+<script type="module" src="src/app.js?v=72"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>

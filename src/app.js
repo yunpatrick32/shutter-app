@@ -1,6 +1,6 @@
 import { TAG_META } from './data.js?v=14';
 const supabase = window.supabase.createClient('https://panktkmwgcttjpebucqy.supabase.co', 'sb_publishable_tuwGL-r9XQO7mlC6FPOVdQ_35XHkEa1');
-function toCreator(r){ return { id:r.id, userId:r.user_id, name:r.name, initials:r.initials, primaryTag:r.primary_tag, lat:r.lat, lng:r.lng, location:r.location, rating:r.rating, reviewCount:r.review_count, tags:r.tags||[], bio:r.bio, gear:r.gear||[], rates:{halfDay:r.half_day_rate,fullDay:r.full_day_rate}, schedule:r.schedule||[true,true,true,true,true,true,true], isLive:r.is_live, showRates:r.show_rates, avatarUrl:r.avatar_url||null, instagramHandle:r.instagram_handle||null, availableNow:r.available_now||false, availableUntil:r.available_until||null, viewCount:r.view_count||0, portfolioPhotos:r.portfolio_photos||[] }; }
+function toCreator(r){ return { id:r.id, userId:r.user_id, name:r.name, initials:r.initials, primaryTag:r.primary_tag, lat:r.lat, lng:r.lng, location:r.location, rating:r.rating, reviewCount:r.review_count, tags:r.tags||[], bio:r.bio, gear:r.gear||[], rates:{halfDay:r.half_day_rate,fullDay:r.full_day_rate}, schedule:r.schedule||[true,true,true,true,true,true,true], isLive:r.is_live, showRates:r.show_rates, avatarUrl:r.avatar_url||null, instagramHandle:r.instagram_handle||null, availableNow:r.available_now||false, availableUntil:r.available_until||null, viewCount:r.view_count||0, portfolioPhotos:r.portfolio_photos||[], stripeAccountId:r.stripe_account_id||null, stripeOnboarded:r.stripe_onboarded||false }; }
 function isAvailNow(c){ return !!(c.availableNow && c.availableUntil && new Date(c.availableUntil)>new Date()); }
 let creators = [];
 const SHUTTER_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScf520qHkbI_0RynCAsm3aEb_ab3Sr6B4aQ7-ESJtARPdWgmw/viewform';
@@ -9,6 +9,9 @@ const LAKE_TAHOE = [-120.0324, 39.0968];
 let activeFilters = new Set(), selectedId = null, markerMap = {}, activeCreator = null;
 let _suppressMapClose = false;
 let currentUser = null, userProfile = null;
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_YOUR_KEY_HERE'; // TODO: replace with your Stripe publishable key
+const stripe = typeof Stripe !== 'undefined' ? Stripe(STRIPE_PUBLISHABLE_KEY) : null;
+let _stripeElements = null, _currentBookingData = null;
 let jnPortfolioFiles = [];
 const myProfile = { name:'Patrick Yun', initials:'PY', location:'Truckee, CA', primaryTag:'snowboard', tags:['snowboard','video','off-road'], bio:'Snowboard filmer and content creator based in Truckee. Off-road capable — no location too remote.', gear:['Sony FX3','DJI RS3 gimbal','Premiere Pro','Tacoma TRD — off-road'], rates:{halfDay:400,fullDay:700}, showRates:false, portfolioUrl:'', stats:{views:12,inquiries:3,earnings:1100} };
 mapboxgl.accessToken = MAPBOX_TOKEN;
@@ -18,8 +21,17 @@ async function fetchAndRender(){ if(fetchAndRender._running)return; fetchAndRend
 function setupTerrain(){ if(map.getSource('mapbox-dem'))return; map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14}); map.setTerrain({source:'mapbox-dem',exaggeration:1.4}); map.setFog({color:'rgb(180,205,230)','high-color':'rgb(30,80,200)','horizon-blend':0.015,'space-color':'rgb(8,8,20)','star-intensity':0.7}); }
 map.on('load',()=>{ setupTerrain(); fetchAndRender(); });
 map.on('style.load',()=>{ setupTerrain(); if(!creators.length)fetchAndRender(); });
+// Handle Stripe Connect return URL (?stripe_return=1&profile_id=xxx&account_id=yyy)
+const _stripeReturnParams=(()=>{const p=new URLSearchParams(window.location.search);if(p.get('stripe_return')==='1'){history.replaceState({},'','/');return{profileId:p.get('profile_id'),accountId:p.get('account_id')};}if(p.get('stripe_refresh')==='1'){history.replaceState({},'','/');showToast('Payout setup incomplete — try again','#f59e0b');}return null;})();
 async function initAuth(){ const {data:{session}}=await supabase.auth.getSession(); if(session?.user)await handleSignIn(session.user); supabase.auth.onAuthStateChange(async(event,session)=>{ if(event==='SIGNED_IN'&&session?.user){await handleSignIn(session.user);closeLoginModal();} else if(event==='SIGNED_OUT'){currentUser=null;userProfile=null;updateProfileBtn();updateNotifBadge();} }); }
-async function handleSignIn(user){ currentUser=user; const {data}=await supabase.from('profiles').select('*').eq('user_id',user.id).maybeSingle(); userProfile=data?toCreator(data):null; updateProfileBtn(); updateNotifBadge(); if(!userProfile){ setTimeout(()=>{ closeLoginModal(); openJoin(); },500); } else { closeLoginModal(); } }
+async function handleSignIn(user){ currentUser=user; const {data}=await supabase.from('profiles').select('*').eq('user_id',user.id).maybeSingle(); userProfile=data?toCreator(data):null;
+  // Mark Stripe onboarding complete if returning from hosted flow
+  if(_stripeReturnParams&&userProfile?.id===_stripeReturnParams.profileId){
+    await supabase.from('profiles').update({stripe_onboarded:true,stripe_account_id:_stripeReturnParams.accountId}).eq('id',userProfile.id);
+    userProfile.stripeOnboarded=true; userProfile.stripeAccountId=_stripeReturnParams.accountId;
+    showToast('Payout account connected! 🎉','#16a34a');
+  }
+  updateProfileBtn(); updateNotifBadge(); if(!userProfile){ setTimeout(()=>{ closeLoginModal(); openJoin(); },500); } else { closeLoginModal(); } }
 function updateProfileBtn(){ const btn=document.getElementById('profile-btn'); if(currentUser){btn.style.background='rgba(129,140,248,.15)';btn.style.borderColor='rgba(129,140,248,.4)';btn.style.color='#818cf8';}else{btn.style.background='';btn.style.borderColor='';btn.style.color='';} const joinBtn=document.getElementById('join-btn'); if(userProfile){joinBtn.style.display='none';}else{joinBtn.style.display='';} }
 function openLoginModal(){ document.getElementById('login-email').value=''; document.getElementById('login-sent').style.display='none'; const btn=document.getElementById('login-send');btn.disabled=false;btn.textContent='Send me a login link'; document.getElementById('login-modal').classList.add('open'); }
 function closeLoginModal(){ document.getElementById('login-modal').classList.remove('open'); }
@@ -44,7 +56,7 @@ function renderMarkers(list){ Object.values(markerMap).forEach(({marker})=>marke
 const DAY_ABBR=['SUN','MON','TUE','WED','THU','FRI','SAT'];
 function openCard(creator){ _suppressMapClose=true; requestAnimationFrame(()=>{_suppressMapClose=false;}); closeAllPanels(); selectedId=creator.id; activeCreator=creator; const meta=TAG_META[creator.primaryTag]; const av=creator.schedule[0]; Object.entries(markerMap).forEach(([id,{el}])=>el.classList.toggle('active',Number(id)===creator.id||id===creator.id)); const avatar=document.getElementById('card-avatar'); if(creator.avatarUrl){avatar.textContent='';avatar.style.cssText=`background:${meta.bg};border-color:${meta.color};background-image:url(${creator.avatarUrl});background-size:cover;background-position:center;`;}else{avatar.textContent=creator.initials;avatar.style.cssText=`background:${meta.bg};border-color:${meta.color};color:${meta.color};`; } document.getElementById('card-name').textContent=creator.name; const verBadge=document.getElementById('card-verified'); if(creator.instagramHandle){verBadge.style.display='inline-flex';}else{verBadge.style.display='none';} const igEl=document.getElementById('card-instagram'); if(creator.instagramHandle){igEl.innerHTML=`<a href="https://instagram.com/${encodeURIComponent(creator.instagramHandle)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;color:#818cf8;text-decoration:none;">📸 @${escapeHtml(creator.instagramHandle)}</a>`;igEl.style.display='block';}else{igEl.style.display='none';} document.getElementById('card-location').textContent=`📍 ${creator.location}`; const filled=Math.round(creator.rating); document.getElementById('card-rating').innerHTML=`<span style="color:${meta.color}">${'★'.repeat(filled)}${'☆'.repeat(5-filled)}</span> <span style="color:#6b7280;font-size:0.75rem">${creator.rating} (${creator.reviewCount} reviews)</span>`; const sortedTags=[creator.primaryTag,...(creator.tags||[]).filter(t=>t!==creator.primaryTag)]; document.getElementById('card-tags').innerHTML=sortedTags.map(t=>{const m=TAG_META[t];if(!m)return'';const isPrimary=t===creator.primaryTag;return`<span class="tag-chip" style="background:${m.color}${isPrimary?'33':'18'};color:${m.color};border-color:${m.color}${isPrimary?'70':'40'};${isPrimary?'font-weight:700;':''}">${isPrimary?'👑 ':''}${m.label}</span>`;}).join(''); document.getElementById('card-bio').textContent=creator.bio; document.getElementById('card-gear').innerHTML=creator.gear.map(g=>`<li class="gear-item"><span class="gear-dot">▸</span>${g}</li>`).join(''); const effectiveShowRates=creator.showRates; if(effectiveShowRates){document.getElementById('card-rates').innerHTML=[{label:'Half Day',val:`$${creator.rates.halfDay}`},{label:'Full Day',val:`$${creator.rates.fullDay}`},{label:'Custom',val:'On request'}].map(r=>`<div class="rate-box"><div class="rate-val">${r.val}</div><div class="rate-label">${r.label}</div></div>`).join('');document.getElementById('card-rates').style.display='flex';document.getElementById('card-rates-hidden').style.display='none';}else{document.getElementById('card-rates').style.display='none';document.getElementById('card-rates-hidden').style.display='flex';} const portUrl=creator.portfolioUrl; const portWrap=document.getElementById('card-portfolio-wrap'); if(portUrl){document.getElementById('card-portfolio-link').href=portUrl;portWrap.style.display='block';}else{portWrap.style.display='none';} const badge=document.getElementById('card-avail-badge'); if(isAvailNow(creator)){badge.classList.add('visible');}else{badge.classList.remove('visible');} const today=new Date(); document.getElementById('card-avail-grid').innerHTML=creator.schedule.map((open,i)=>{const d=new Date(today);d.setDate(today.getDate()+i);const label=i===0?'TODAY':DAY_ABBR[d.getDay()];return`<div class="avail-cell ${open?'avail-open':'avail-busy'} ${i===0?'avail-today':''}"><span class="avail-dname">${label}</span><span class="avail-dnum">${d.getDate()}</span><span class="avail-dot"></span></div>`;}).join(''); const bookBtn=document.getElementById('btn-book'); bookBtn.textContent=av?'Book Now':'Request Booking'; bookBtn.style.background=av?'#16a34a':'#374151'; renderCardPortfolioGrid(creator); document.getElementById('profile-card').classList.add('open'); document.getElementById('overlay').classList.add('active'); map.flyTo({center:[creator.lng,creator.lat],zoom:Math.max(map.getZoom(),11.5),pitch:52,duration:900,offset:[0,-120],essential:true}); if(creator.id)supabase.rpc('increment_view_count',{profile_id:creator.id}).then(()=>{},()=>{}); setLocateButtonVisibility(false); }
 function closeCard(){ selectedId=null; document.getElementById('profile-card').classList.remove('open'); document.getElementById('overlay').classList.remove('active'); Object.values(markerMap).forEach(({el})=>el.classList.remove('active')); setLocateButtonVisibility(true); }
-function openBooking(){ if(!activeCreator)return; closeAllPanels(); const meta=TAG_META[activeCreator.primaryTag]; const ba=document.getElementById('booking-avatar'); ba.textContent=activeCreator.initials; ba.style.background=meta.bg; ba.style.borderColor=meta.color; ba.style.color=meta.color; document.getElementById('booking-name').textContent=activeCreator.name; document.getElementById('booking-location').textContent=activeCreator.location; document.getElementById('booking-type').value='snowboard'; document.getElementById('booking-date').value=''; document.getElementById('booking-notes').value=''; document.querySelectorAll('.deliverable-check').forEach(cb=>cb.checked=false); setDuration('half'); document.getElementById('booking-panel').classList.add('open'); setLocateButtonVisibility(false); }
+function openBooking(){ if(!activeCreator)return; closeAllPanels(); const meta=TAG_META[activeCreator.primaryTag]; const ba=document.getElementById('booking-avatar'); ba.textContent=activeCreator.initials; ba.style.background=meta.bg; ba.style.borderColor=meta.color; ba.style.color=meta.color; document.getElementById('booking-name').textContent=activeCreator.name; document.getElementById('booking-location').textContent=activeCreator.location; document.getElementById('booking-type').value='snowboard'; document.getElementById('booking-date').value=''; document.getElementById('booking-notes').value=''; document.querySelectorAll('.deliverable-check').forEach(cb=>cb.checked=false); setDuration('half'); document.getElementById('booking-details-step').style.display=''; document.getElementById('booking-payment-step').style.display='none'; document.getElementById('payment-element').innerHTML=''; document.getElementById('payment-message').style.display='none'; _stripeElements=null; _currentBookingData=null; document.getElementById('booking-panel').classList.add('open'); setLocateButtonVisibility(false); }
 function closeBooking(){ document.getElementById('booking-panel').classList.remove('open'); setLocateButtonVisibility(true); }
 function setDuration(type){ document.querySelectorAll('.dur-btn').forEach(b=>{const active=b.dataset.type===type; b.style.background=active?'#818cf818':'#1f2937'; b.style.borderColor=active?'#818cf8':'#374151'; b.style.color=active?'#818cf8':'#9ca3af'; b.style.fontWeight=active?'600':'400';}); const price=type==='half'?activeCreator?.rates?.halfDay:type==='full'?activeCreator?.rates?.fullDay:null; document.getElementById('price-label').textContent=type==='half'?'Half day':type==='full'?'Full day':'Multi-day'; document.getElementById('price-amount').textContent=price?`${price}`:'Custom quote'; }
 
@@ -265,7 +277,7 @@ async function updateNotifBadge(){
 
 // ─── MY PROFILE ──────────────────────────────────────────────────────────────
 
-function openMyProfile(){ closeAllPanels(); const p=userProfile||myProfile; const meta=TAG_META[p.primaryTag]||TAG_META['snowboard']; const av=document.getElementById('mp-avatar'); if(p.avatarUrl){av.textContent='';av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.backgroundImage=`url(${p.avatarUrl})`;av.style.backgroundSize='cover';av.style.backgroundPosition='center';}else{av.textContent=p.initials;av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.color=meta.color;av.style.backgroundImage='';} document.getElementById('mp-name').textContent=p.name; document.getElementById('mp-location').textContent=p.location||''; document.getElementById('mp-bio').value=p.bio||''; document.getElementById('mp-views').textContent=userProfile?.viewCount||0; document.getElementById('mp-inquiries').textContent=0; document.getElementById('mp-earnings').textContent=(userProfile?.rating||5.0).toFixed(1)+'★'; if(userProfile){supabase.from('profiles').select('view_count').eq('id',userProfile.id).single().then(({data})=>{document.getElementById('mp-views').textContent=data?.view_count||0;});supabase.from('messages').select('*',{count:'exact',head:true}).eq('recipient_profile_id',userProfile.id).then(({count})=>{document.getElementById('mp-inquiries').textContent=count||0;});} document.getElementById('mp-half-rate').value=p.rates?.halfDay||''; document.getElementById('mp-full-rate').value=p.rates?.fullDay||''; renderMpSpecialtiesGrid(); document.getElementById('mp-gear-list').innerHTML=(p.gear||[]).map((g,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1f2937;border-radius:8px;margin-bottom:6px;font-size:0.85rem;"><span>▸ ${escapeHtml(g)}</span><button onclick="removeGear(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;">×</button></div>`).join(''); document.getElementById('live-toggle').checked=p.isLive??true; updateLiveStatus(); document.getElementById('rates-visible-toggle').checked=p.showRates||false; updateRatesVisStatus(); document.getElementById('mp-portfolio-url').value=p.portfolioUrl||''; document.getElementById('mp-instagram').value=p.instagramHandle?`@${p.instagramHandle}`:''; renderMpScheduleGrid(); renderMpPortfolioGrid(); const anBtn=document.getElementById('mp-avail-now-btn'); if(anBtn){const active=userProfile&&isAvailNow(userProfile);anBtn.classList.toggle('active',active);anBtn.textContent=active?'🟢 Available Now — tap to turn off':'🟢 Set Available Now (8 hrs)';} document.getElementById('my-profile-panel').classList.add('open'); setLocateButtonVisibility(false); }
+function openMyProfile(){ closeAllPanels(); const p=userProfile||myProfile; const meta=TAG_META[p.primaryTag]||TAG_META['snowboard']; const av=document.getElementById('mp-avatar'); if(p.avatarUrl){av.textContent='';av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.backgroundImage=`url(${p.avatarUrl})`;av.style.backgroundSize='cover';av.style.backgroundPosition='center';}else{av.textContent=p.initials;av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.color=meta.color;av.style.backgroundImage='';} document.getElementById('mp-name').textContent=p.name; document.getElementById('mp-location').textContent=p.location||''; document.getElementById('mp-bio').value=p.bio||''; document.getElementById('mp-views').textContent=userProfile?.viewCount||0; document.getElementById('mp-inquiries').textContent=0; document.getElementById('mp-earnings').textContent=(userProfile?.rating||5.0).toFixed(1)+'★'; if(userProfile){supabase.from('profiles').select('view_count').eq('id',userProfile.id).single().then(({data})=>{document.getElementById('mp-views').textContent=data?.view_count||0;});supabase.from('messages').select('*',{count:'exact',head:true}).eq('recipient_profile_id',userProfile.id).then(({count})=>{document.getElementById('mp-inquiries').textContent=count||0;});} document.getElementById('mp-half-rate').value=p.rates?.halfDay||''; document.getElementById('mp-full-rate').value=p.rates?.fullDay||''; renderMpSpecialtiesGrid(); document.getElementById('mp-gear-list').innerHTML=(p.gear||[]).map((g,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1f2937;border-radius:8px;margin-bottom:6px;font-size:0.85rem;"><span>▸ ${escapeHtml(g)}</span><button onclick="removeGear(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;">×</button></div>`).join(''); document.getElementById('live-toggle').checked=p.isLive??true; updateLiveStatus(); document.getElementById('rates-visible-toggle').checked=p.showRates||false; updateRatesVisStatus(); document.getElementById('mp-portfolio-url').value=p.portfolioUrl||''; document.getElementById('mp-instagram').value=p.instagramHandle?`@${p.instagramHandle}`:''; renderMpScheduleGrid(); renderMpPortfolioGrid(); const anBtn=document.getElementById('mp-avail-now-btn'); if(anBtn){const active=userProfile&&isAvailNow(userProfile);anBtn.classList.toggle('active',active);anBtn.textContent=active?'🟢 Available Now — tap to turn off':'🟢 Set Available Now (8 hrs)';} const pb=document.getElementById('mp-payout-banner');if(pb){pb.style.display=userProfile&&!userProfile.stripeOnboarded?'flex':'none';} document.getElementById('my-profile-panel').classList.add('open'); setLocateButtonVisibility(false); }
 function closeMyProfile(){ document.getElementById('my-profile-panel').classList.remove('open'); setLocateButtonVisibility(true); }
 function removeGear(idx){ (userProfile||myProfile).gear.splice(idx,1); openMyProfile(); }
 function addGear(){ const input=document.getElementById('mp-gear-input'); const val=input.value.trim(); if(!val)return; (userProfile||myProfile).gear.push(val); input.value=''; openMyProfile(); showToast(`Added: ${val}`); }
@@ -343,9 +355,74 @@ document.getElementById('join-submit').addEventListener('click',submitJoin);
 document.getElementById('close-btn').addEventListener('click',closeCard);
 document.getElementById('btn-book').addEventListener('click',e=>{e.stopPropagation();openBooking();});
 document.getElementById('btn-message').addEventListener('click',e=>{e.stopPropagation();if(!currentUser){openLoginModal();return;}openChatWith(activeCreator);});
-document.getElementById('booking-back').addEventListener('click',closeBooking);
+document.getElementById('booking-back').addEventListener('click',()=>{
+  if(document.getElementById('booking-payment-step')?.style.display!=='none'){
+    document.getElementById('booking-payment-step').style.display='none';
+    document.getElementById('booking-details-step').style.display='';
+  }else{closeBooking();}
+});
 document.querySelectorAll('.dur-btn').forEach(btn=>btn.addEventListener('click',()=>setDuration(btn.dataset.type)));
-document.getElementById('send-booking-btn').addEventListener('click',async()=>{ const btn=document.getElementById('send-booking-btn'); const name=activeCreator?.name; btn.textContent='Sending...'; btn.disabled=true; const shootDate=document.getElementById('booking-date').value; const notes=document.getElementById('booking-notes').value; const duration=document.querySelector('.dur-btn[style*="818cf8"]')?.dataset?.type||'half'; const{error}=await supabase.from('bookings').insert([{client_user_id:currentUser?.id||null,creator_profile_id:activeCreator.id,shoot_type:document.getElementById('booking-type').value,shoot_date:shootDate,duration,notes,status:'pending'}]); if(error){showToast('Failed to send request','#ef4444');btn.textContent='Send booking request';btn.disabled=false;return;} if(currentUser){await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:activeCreator.id,body:`📅 Booking request for ${shootDate||'TBD'} — ${notes||'No notes'}`,is_rate_proposal:false,read:false}]);} btn.textContent='Send booking request'; btn.disabled=false; closeBooking(); showToast(`Booking request sent to ${name}! ✓`); });
+document.getElementById('send-booking-btn').addEventListener('click',async()=>{
+  if(!currentUser){openLoginModal();return;}
+  const btn=document.getElementById('send-booking-btn');
+  const shootDate=document.getElementById('booking-date').value;
+  const notes=document.getElementById('booking-notes').value;
+  const duration=document.querySelector('.dur-btn[style*="818cf8"]')?.dataset?.type||'half';
+  const shootType=document.getElementById('booking-type').value;
+  const priceText=document.getElementById('price-amount').textContent;
+  const bookingAmount=(priceText&&priceText!=='—'&&priceText!=='Custom quote')?parseFloat(priceText.replace(/[^0-9.]/g,'')):null;
+  _currentBookingData={shootDate,notes,duration,shootType};
+  if(bookingAmount&&activeCreator?.stripeOnboarded&&stripe){
+    btn.textContent='Setting up payment…'; btn.disabled=true;
+    try{
+      await initBookingPayment(bookingAmount);
+    }catch(e){
+      showToast('Payment setup failed: '+e.message,'#ef4444');
+    }
+    btn.textContent='Send Booking Request'; btn.disabled=false;
+  }else{
+    btn.textContent='Sending…'; btn.disabled=true;
+    const{error}=await supabase.from('bookings').insert([{client_user_id:currentUser?.id||null,creator_profile_id:activeCreator.id,shoot_type:shootType,shoot_date:shootDate,duration,notes,status:'pending'}]);
+    if(error){showToast('Failed to send request','#ef4444');btn.textContent='Send Booking Request';btn.disabled=false;return;}
+    if(currentUser){await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:activeCreator.id,body:`📅 Booking request for ${shootDate||'TBD'} — ${notes||'No notes'}`,is_rate_proposal:false,read:false}]);}
+    btn.textContent='Send Booking Request'; btn.disabled=false; closeBooking(); showToast(`Booking request sent to ${activeCreator.name}! ✓`);
+  }
+});
+
+async function initBookingPayment(bookingAmount){
+  const res=await supabase.functions.invoke('create-payment-intent',{body:{bookingAmount,creatorStripeAccountId:activeCreator.stripeAccountId,metadata:{creator_profile_id:activeCreator.id,client_user_id:currentUser?.id||'',shoot_type:_currentBookingData?.shootType||'',shoot_date:_currentBookingData?.shootDate||''}}});
+  if(res.error)throw new Error(res.error.message||'Payment setup failed');
+  const{clientSecret,clientTotal}=res.data;
+  const serviceFee=(clientTotal-bookingAmount).toFixed(2);
+  document.getElementById('booking-price-breakdown').innerHTML=`<div style="font-size:.78rem;color:#6b7280;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Payment Summary</div><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>Booking rate</span><span style="color:#f9fafb;font-weight:600;">$${bookingAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:.8rem;color:#6b7280;"><span>Service fee (4%)</span><span>$${serviceFee}</span></div><div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid #374151;font-weight:800;font-size:1rem;"><span>Total charged</span><span style="color:#4ade80;">$${clientTotal.toFixed(2)}</span></div>`;
+  document.getElementById('payment-element').innerHTML='';
+  _stripeElements=stripe.elements({clientSecret,appearance:{theme:'night',variables:{colorPrimary:'#818cf8',colorBackground:'#111827',colorText:'#f9fafb',colorDanger:'#ef4444',borderRadius:'10px',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif'}}});
+  const pe=_stripeElements.create('payment');
+  document.getElementById('booking-payment-step').style.display='';
+  document.getElementById('booking-details-step').style.display='none';
+  pe.mount('#payment-element');
+  _currentBookingData.clientTotal=clientTotal;
+  document.getElementById('confirm-pay-btn').textContent=`Confirm & Pay $${clientTotal.toFixed(2)}`;
+}
+
+document.getElementById('confirm-pay-btn').addEventListener('click',async()=>{
+  if(!_stripeElements||!stripe)return;
+  const btn=document.getElementById('confirm-pay-btn');
+  const msgEl=document.getElementById('payment-message');
+  btn.textContent='Processing…'; btn.disabled=true; msgEl.style.display='none';
+  const{error,paymentIntent}=await stripe.confirmPayment({elements:_stripeElements,confirmParams:{return_url:'https://shutter-app.netlify.app'},redirect:'if_required'});
+  if(error){
+    msgEl.textContent=error.message; msgEl.style.display='block';
+    btn.textContent=`Confirm & Pay $${_currentBookingData?.clientTotal?.toFixed(2)||''}`;
+    btn.disabled=false; return;
+  }
+  if(paymentIntent?.status==='succeeded'||paymentIntent?.status==='processing'){
+    const{shootDate,notes,duration,shootType,clientTotal}=_currentBookingData||{};
+    await supabase.from('bookings').insert([{client_user_id:currentUser?.id||null,creator_profile_id:activeCreator.id,shoot_type:shootType,shoot_date:shootDate,duration,notes,status:'confirmed',stripe_payment_intent_id:paymentIntent.id,amount_total:clientTotal,amount_creator:clientTotal?parseFloat((clientTotal/1.04*0.98).toFixed(2)):null}]);
+    if(currentUser){await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:activeCreator.id,body:`💳 Paid booking for ${shootDate||'TBD'} — ${notes||'No notes'}`,is_rate_proposal:false,read:false}]);}
+    btn.disabled=false; closeBooking(); showToast('Booking confirmed! 🎉','#16a34a');
+  }
+});
 document.getElementById('msg-btn').addEventListener('click',()=>{ if(!currentUser){openLoginModal();return;} fetchAndOpenMessages(); });
 document.getElementById('messages-back').addEventListener('click',closeMessages);
 document.getElementById('chat-back').addEventListener('click',closeChat);
@@ -664,4 +741,17 @@ document.getElementById('jn-location').addEventListener('input',e=>{
 });
 document.getElementById('jn-location').addEventListener('blur',()=>setTimeout(closeJnSuggestions,150));
 document.getElementById('jn-location').addEventListener('keydown',e=>{if(e.key==='Escape')closeJnSuggestions();});
+async function startStripeOnboarding(){
+  if(!userProfile)return;
+  const btn=document.getElementById('mp-payout-btn');
+  if(btn){btn.textContent='Setting up…';btn.disabled=true;}
+  const res=await supabase.functions.invoke('stripe-onboard',{body:{profileId:userProfile.id,userId:currentUser?.id||''}});
+  if(btn){btn.textContent='Set up payouts';btn.disabled=false;}
+  if(res.error){showToast('Setup failed: '+res.error.message,'#ef4444');return;}
+  const{url,accountId}=res.data;
+  await supabase.from('profiles').update({stripe_account_id:accountId}).eq('id',userProfile.id).then(()=>{},()=>{});
+  userProfile.stripeAccountId=accountId;
+  window.open(url,'_blank');
+}
+window.startStripeOnboarding=startStripeOnboarding;
 initAuth();

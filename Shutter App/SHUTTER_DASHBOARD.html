@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shutter — Agent Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e8e8e8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  header { padding: 24px 32px 18px; border-bottom: 1px solid #1e1e2e; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: #fff; }
+  .logo span { color: #7c6af7; }
+  .sync-info { font-size: 12px; color: #444; }
+
+  .tabs { display: flex; gap: 4px; padding: 16px 32px 0; border-bottom: 1px solid #1e1e2e; }
+  .tab { padding: 10px 18px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 13px; font-weight: 500; color: #555; transition: all 0.15s; border: none; background: none; }
+  .tab:hover { color: #999; }
+  .tab.active { background: #13131f; color: #fff; border-bottom: 2px solid #7c6af7; }
+
+  .content { padding: 24px 32px; max-width: 860px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Agent Cards */
+  .agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .agent-card { background: #111118; border: 1px solid #1e1e2e; border-radius: 10px; padding: 16px; position: relative; overflow: hidden; }
+  .agent-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .agent-card.orchestrator::before { background: #7c6af7; }
+  .agent-card.legal::before { background: #4a9eff; }
+  .agent-card.marketing::before { background: #ff6b6b; }
+  .agent-card.finance::before { background: #2ecc71; }
+  .agent-card.dev::before { background: #f39c12; }
+  .agent-name { font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .agent-status { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .status-dot.active { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+  .status-dot.pending { background: #f39c12; }
+  .agent-focus { font-size: 11px; color: #555; line-height: 1.5; }
+
+  /* Progress */
+  .progress-section { margin-bottom: 28px; }
+  .progress-item { margin-bottom: 12px; }
+  .progress-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #666; }
+  .progress-bar { height: 5px; background: #1a1a2a; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .progress-fill.dev { background: #f39c12; }
+  .progress-fill.legal { background: #4a9eff; }
+  .progress-fill.finance { background: #2ecc71; }
+  .progress-fill.marketing { background: #ff6b6b; }
+
+  /* Checklist */
+  .section-title { font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title .count { background: #1a1a2a; color: #444; font-size: 10px; padding: 2px 7px; border-radius: 20px; }
+  .checklist { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+
+  .checklist-item { border-bottom: 1px solid #161622; }
+  .checklist-item:last-child { border-bottom: none; }
+
+  .item-header { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; cursor: pointer; transition: background 0.1s; user-select: none; }
+  .item-header:hover { background: #13131e; }
+  .item-header.expanded { background: #13131e; }
+
+  .checkbox { width: 17px; height: 17px; border-radius: 5px; border: 2px solid #2a2a3a; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .checklist-item.done .checkbox { background: #7c6af7; border-color: #7c6af7; }
+  .checkmark { width: 9px; height: 9px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; display: none; }
+  .checklist-item.done .checkmark { display: block; }
+
+  .item-main { flex: 1; min-width: 0; }
+  .item-title { font-size: 13px; color: #ddd; font-weight: 500; margin-bottom: 5px; line-height: 1.4; }
+  .checklist-item.done .item-title { text-decoration: line-through; color: #444; }
+  .item-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+  .badge.critical { background: #2d1414; color: #ff6b6b; }
+  .badge.high { background: #2d2414; color: #f39c12; }
+  .badge.medium { background: #14242d; color: #4a9eff; }
+  .badge.low { background: #1a1a2a; color: #555; }
+  .badge.agent { background: #1a1a2e; color: #7c6af7; }
+  .badge.blocked { background: #2d1414; color: #e74c3c; border: 1px solid #3d1a1a; }
+
+  .chevron { font-size: 11px; color: #333; margin-top: 2px; transition: transform 0.2s; flex-shrink: 0; }
+  .item-header.expanded .chevron { transform: rotate(90deg); color: #7c6af7; }
+
+  /* Dropdown content */
+  .item-dropdown { display: none; padding: 0 18px 16px 47px; border-top: 1px solid #161622; }
+  .item-dropdown.open { display: block; }
+
+  .dropdown-section { margin-top: 14px; }
+  .dropdown-label { font-size: 10px; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+
+  .copy-block { background: #0d0d18; border: 1px solid #1e1e2e; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; position: relative; }
+  .copy-block-title { font-size: 11px; font-weight: 600; color: #666; margin-bottom: 6px; }
+  .copy-block-text { font-size: 12px; color: #aaa; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+  .copy-btn { position: absolute; top: 10px; right: 10px; background: #1e1e2e; color: #888; border: none; border-radius: 5px; padding: 4px 10px; font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #7c6af7; color: #fff; }
+  .copy-btn.copied { background: #2ecc71; color: #fff; }
+
+  .info-block { background: #0d0d18; border: 1px solid #1e1e2e; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+  .info-block p { font-size: 12px; color: #888; line-height: 1.6; }
+  .info-block a { color: #7c6af7; text-decoration: none; }
+  .info-block a:hover { text-decoration: underline; }
+  .info-block code { background: #1a1a2a; padding: 1px 5px; border-radius: 3px; font-size: 11px; color: #aaa; }
+
+  .steps-block { background: #0d0d18; border: 1px solid #1e1e2e; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+  .step { display: flex; gap: 10px; margin-bottom: 8px; font-size: 12px; color: #888; line-height: 1.5; }
+  .step:last-child { margin-bottom: 0; }
+  .step-num { background: #1e1e2e; color: #7c6af7; font-size: 10px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+
+  /* Add task */
+  .add-task { display: flex; gap: 8px; margin-top: 12px; }
+  .add-task input { flex: 1; background: #111118; border: 1px solid #1e1e2e; border-radius: 8px; padding: 9px 13px; color: #ddd; font-size: 13px; outline: none; }
+  .add-task input:focus { border-color: #7c6af7; }
+  .add-task button { background: #7c6af7; color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .add-task button:hover { background: #6a58e0; }
+
+  /* Messages */
+  .message-board { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .message { padding: 12px 18px; border-bottom: 1px solid #161622; display: flex; gap: 10px; }
+  .message:last-child { border-bottom: none; }
+  .msg-from { font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 4px; white-space: nowrap; height: fit-content; margin-top: 2px; }
+  .msg-from.orchestrator { background: #21194a; color: #7c6af7; }
+  .msg-from.legal { background: #14243a; color: #4a9eff; }
+  .msg-from.marketing { background: #3a1414; color: #ff6b6b; }
+  .msg-from.finance { background: #143a24; color: #2ecc71; }
+  .msg-from.dev { background: #3a2414; color: #f39c12; }
+  .msg-content { flex: 1; }
+  .msg-to { font-size: 10px; color: #383838; margin-bottom: 3px; }
+  .msg-text { font-size: 12px; color: #aaa; line-height: 1.5; }
+  .msg-time { font-size: 10px; color: #2a2a3a; margin-top: 3px; }
+  .message-input { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid #1e1e2e; }
+  .message-input select { background: #0a0a0f; border: 1px solid #1e1e2e; border-radius: 7px; padding: 7px 9px; color: #666; font-size: 11px; outline: none; }
+  .message-input input { flex: 1; background: #0a0a0f; border: 1px solid #1e1e2e; border-radius: 7px; padding: 7px 11px; color: #ddd; font-size: 12px; outline: none; }
+  .message-input input:focus { border-color: #7c6af7; }
+  .message-input button { background: #7c6af7; color: #fff; border: none; border-radius: 7px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SHUTTER <span>//</span> Agent Dashboard</div>
+  <div class="sync-info">Last synced: April 15, 2026</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('overview', this)">Overview</button>
+  <button class="tab" onclick="switchTab('dev', this)">🛠 Dev</button>
+  <button class="tab" onclick="switchTab('legal', this)">⚖️ Legal</button>
+  <button class="tab" onclick="switchTab('finance', this)">💰 Finance</button>
+  <button class="tab" onclick="switchTab('marketing', this)">📣 Marketing</button>
+  <button class="tab" onclick="switchTab('messages', this)">💬 Messages</button>
+</div>
+
+<div class="content">
+
+  <!-- OVERVIEW -->
+  <div class="panel active" id="panel-overview">
+    <div class="agent-grid">
+      <div class="agent-card orchestrator">
+        <div class="agent-name">🧠 Main Brain</div>
+        <div class="agent-status"><div class="status-dot active"></div><span style="font-size:12px;color:#ccc">Cowork — Active</span></div>
+        <div class="agent-focus">Orchestrates all agents. Syncs every Monday 9am.</div>
+      </div>
+      <div class="agent-card legal">
+        <div class="agent-name">⚖️ Legal Agent</div>
+        <div class="agent-status"><div class="status-dot pending"></div><span style="font-size:12px;color:#888">Runs Tuesdays</span></div>
+        <div class="agent-focus">Trademark, brand name, LLC, USPTO.</div>
+      </div>
+      <div class="agent-card marketing">
+        <div class="agent-name">📣 Marketing Agent</div>
+        <div class="agent-status"><div class="status-dot pending"></div><span style="font-size:12px;color:#888">Runs Wednesdays</span></div>
+        <div class="agent-focus">Creator outreach, content calendar, ads.</div>
+      </div>
+      <div class="agent-card finance">
+        <div class="agent-name">💰 Finance Agent</div>
+        <div class="agent-status"><div class="status-dot pending"></div><span style="font-size:12px;color:#888">Runs Thursdays</span></div>
+        <div class="agent-focus">Banking, Stripe Connect, pricing, runway.</div>
+      </div>
+      <div class="agent-card dev">
+        <div class="agent-name">🛠 Dev Agent</div>
+        <div class="agent-status"><div class="status-dot pending"></div><span style="font-size:12px;color:#888">Runs Fridays</span></div>
+        <div class="agent-focus">Stripe, App Store, Gig Feed, email domain.</div>
+      </div>
+    </div>
+
+    <div class="section-title">Overall Progress</div>
+    <div class="progress-section">
+      <div class="progress-item">
+        <div class="progress-label"><span>Dev</span><span id="dev-pct">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill dev" id="dev-bar" style="width:0%"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-label"><span>Legal</span><span id="legal-pct">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill legal" id="legal-bar" style="width:0%"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-label"><span>Finance</span><span id="finance-pct">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill finance" id="finance-bar" style="width:0%"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-label"><span>Marketing</span><span id="marketing-pct">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill marketing" id="marketing-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEV -->
+  <div class="panel" id="panel-dev">
+    <div class="section-title">🛠 Dev Tasks <span class="count" id="dev-count"></span></div>
+    <div class="checklist" id="checklist-dev"></div>
+    <div class="add-task">
+      <input type="text" id="new-dev-task" placeholder="Add a dev task..." onkeydown="if(event.key==='Enter')addTask('dev')" />
+      <button onclick="addTask('dev')">+ Add</button>
+    </div>
+  </div>
+
+  <!-- LEGAL -->
+  <div class="panel" id="panel-legal">
+    <div class="section-title">⚖️ Legal Tasks <span class="count" id="legal-count"></span></div>
+    <div class="checklist" id="checklist-legal"></div>
+    <div class="add-task">
+      <input type="text" id="new-legal-task" placeholder="Add a legal task..." onkeydown="if(event.key==='Enter')addTask('legal')" />
+      <button onclick="addTask('legal')">+ Add</button>
+    </div>
+  </div>
+
+  <!-- FINANCE -->
+  <div class="panel" id="panel-finance">
+    <div class="section-title">💰 Finance Tasks <span class="count" id="finance-count"></span></div>
+    <div class="checklist" id="checklist-finance"></div>
+    <div class="add-task">
+      <input type="text" id="new-finance-task" placeholder="Add a finance task..." onkeydown="if(event.key==='Enter')addTask('finance')" />
+      <button onclick="addTask('finance')">+ Add</button>
+    </div>
+  </div>
+
+  <!-- MARKETING -->
+  <div class="panel" id="panel-marketing">
+    <div class="section-title">📣 Marketing Tasks <span class="count" id="marketing-count"></span></div>
+    <div class="checklist" id="checklist-marketing"></div>
+    <div class="add-task">
+      <input type="text" id="new-marketing-task" placeholder="Add a marketing task..." onkeydown="if(event.key==='Enter')addTask('marketing')" />
+      <button onclick="addTask('marketing')">+ Add</button>
+    </div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="panel" id="panel-messages">
+    <div class="section-title">💬 Agent Message Board</div>
+    <div class="message-board">
+      <div id="message-list"></div>
+      <div class="message-input">
+        <select id="msg-from">
+          <option value="orchestrator">🧠 Brain</option>
+          <option value="legal">⚖️ Legal</option>
+          <option value="marketing">📣 Mktg</option>
+          <option value="finance">💰 Finance</option>
+          <option value="dev">🛠 Dev</option>
+        </select>
+        <select id="msg-to">
+          <option value="ALL">→ ALL</option>
+          <option value="LEGAL">→ Legal</option>
+          <option value="MARKETING">→ Marketing</option>
+          <option value="FINANCE">→ Finance</option>
+          <option value="DEV">→ Dev</option>
+          <option value="ORCHESTRATOR">→ Brain</option>
+        </select>
+        <input type="text" id="msg-text" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()" />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── TASK DEFINITIONS WITH DROPDOWN CONTENT ───────────────────────────────
+const DEFAULT_TASKS = {
+  dev: [
+    {
+      id: 'd1', title: 'Stripe Connect — 8% commission on bookings', priority: 'high', agent: 'Dev Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Why Stripe Connect (not Checkout)', type: 'info', content: 'Stripe Connect lets you split payments between Shutter and creators automatically. Checkout is for single-party payments — it doesn\'t support marketplace payouts. You need Connect with "destination charges" so 8% goes to Shutter and 92% goes to the creator.' },
+          { label: 'Steps to implement', type: 'steps', steps: [
+            'Create a Stripe account at stripe.com and enable Connect in the dashboard',
+            'Add creator onboarding: when a creator signs up, redirect them to Stripe\'s hosted onboarding (stripe.com/connect/account-onboarding) to link their bank',
+            'Store each creator\'s stripe_account_id in the profiles table in Supabase',
+            'When a booking is confirmed, create a PaymentIntent with transfer_data: { destination: creator.stripe_account_id, amount: total * 0.92 }',
+            'Increment ?v=N on app.js script tag in index.html after every change (currently v=51)'
+          ]},
+          { label: 'Message to paste for Finance Agent', type: 'copy', copyTitle: 'Stripe Connect requirements for Finance', copyText: 'Hey — Stripe Connect needs a business bank account linked before we can receive the 8% platform fee. Once Legal finalizes the LLC name, open Mercury or Relay, then connect it to Stripe. I\'ll handle the code side once you\'re set up there.' }
+        ]
+      }
+    },
+    {
+      id: 'd2', title: 'App Store — Capacitor wrapper + Apple submission', priority: 'medium', agent: 'Dev Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'What is Capacitor?', type: 'info', content: 'Capacitor (capacitorjs.com) wraps your existing vanilla JS web app into a native iOS app with zero rewriting. Since Shutter is already a PWA, this is the fastest path to the App Store.' },
+          { label: 'Steps to wrap and submit', type: 'steps', steps: [
+            'Install: npm install @capacitor/core @capacitor/cli @capacitor/ios in ~/My App/',
+            'Run: npx cap init "Shutter" com.shutter.app --web-dir .',
+            'Run: npx cap add ios — this creates the Xcode project',
+            'Open in Xcode: npx cap open ios',
+            'Set your Apple Developer account ($99/yr at developer.apple.com)',
+            'Archive the build in Xcode and upload to App Store Connect',
+            'Fill in screenshots, description, and submit for review (usually 1-3 days)'
+          ]},
+          { label: 'App Store description (copy-paste ready)', type: 'copy', copyTitle: 'App Store short description', copyText: 'Shutter is the fastest way to find and hire outdoor sports photographers, filmers, and creatives around Lake Tahoe. Open the map, see who\'s available near you, and book in minutes.' },
+          { label: 'App Store keywords', type: 'copy', copyTitle: 'App Store keywords', copyText: 'photographer, filmer, snowboard, ski, drone, Tahoe, Truckee, outdoor, freelance, creator, booking, map' }
+        ]
+      }
+    },
+    {
+      id: 'd3', title: 'Gig Feed — location-tagged shoot cards on the map', priority: 'medium', agent: 'Dev Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Concept', type: 'info', content: 'Creators post a "gig card" pinned to a location on the map — like "Available Saturday at Palisades, looking for a ski shoot, DM me." Clients see these as a separate layer on the map and can respond directly.' },
+          { label: 'Suggested data model', type: 'copy', copyTitle: 'Supabase gigs table SQL', copyText: `CREATE TABLE gigs (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  creator_profile_id int REFERENCES profiles(id),
+  title text NOT NULL,
+  description text,
+  lat float,
+  lng float,
+  location text,
+  available_date date,
+  duration text,
+  rate int,
+  tags text[],
+  is_active bool DEFAULT true,
+  expires_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);` }
+        ]
+      }
+    },
+    {
+      id: 'd4', title: 'Email domain verification in Resend', priority: 'low', agent: 'Dev Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Steps', type: 'steps', steps: [
+            'Go to resend.com → Domains → Add Domain',
+            'Enter your domain (once you have one — currently shutter-app.netlify.app doesn\'t support custom DNS)',
+            'Add the DNS TXT and MX records Resend gives you to your domain registrar',
+            'Once verified, update the Edge Function (notify-message/index.ts) to send from hello@yourdomain.com instead of the Resend default'
+          ]},
+          { label: 'Note', type: 'info', content: 'This is blocked until Legal finalizes the brand name — you\'ll want the domain to match the brand (e.g. shuttercrew.com or pinshot.co). Register the domain at Namecheap or Cloudflare after the name is decided.' }
+        ]
+      }
+    }
+  ],
+
+  legal: [
+    {
+      id: 'l1', title: 'Invention disclosure SHTR-001 — sign and store', priority: 'high', agent: 'Legal Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'What it is', type: 'info', content: 'An invention disclosure is an internal document that records what you invented, when, and the key technical details. It establishes a dated paper trail of your IP before you file a trademark or patent — important if someone ever challenges your ownership.' },
+          { label: 'What to include in SHTR-001', type: 'copy', copyTitle: 'Invention disclosure outline', copyText: `SHUTTER — Invention Disclosure SHTR-001
+
+Inventor: Patrick Yun
+Date: [today's date]
+Location: Truckee, CA
+
+INVENTION TITLE: Map-First Freelance Marketplace for Outdoor Sports Creatives
+
+DESCRIPTION:
+A location-based web and mobile platform that displays outdoor sports photographers, filmers, models, and creatives as pins on an interactive map. Clients can filter by discipline, view creator profiles, check real-time availability, message creators, and complete bookings directly through the platform. The system uses Supabase for real-time data, Mapbox GL JS for mapping, and supports creator-side portfolio management, rate setting, and availability broadcasting.
+
+KEY INNOVATIONS:
+- Map-first hiring interface for outdoor/action sports creatives
+- Real-time "Available Now" status with automatic expiration
+- Location-pinned creator discovery with discipline filtering
+- Integrated messaging with rate proposal system
+- Creator portfolio and availability management in a single mobile-first interface
+
+Signature: _______________________ Date: _____________` },
+          { label: 'Where to store it', type: 'info', content: 'Save the signed PDF to ~/My App/legal/SHTR-001-invention-disclosure.pdf. Keep a backup in Google Drive or iCloud.' }
+        ]
+      }
+    },
+    {
+      id: 'l2', title: 'Finalize brand name (SHUTTER CREW / PINSHOT / FIELDCREW)', priority: 'critical', agent: 'Legal Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Option comparison', type: 'info', content: '"SHUTTER" alone — high conflict (multiple live marks). SHUTTER CREW — differentiating but still uses "SHUTTER." PINSHOT — clean, unique, memorable, no conflicts found. FIELDCREW — strong outdoor connotation, clean on USPTO. Recommendation: PINSHOT or FIELDCREW for lowest legal risk.' },
+          { label: 'Search each name yourself', type: 'steps', steps: [
+            'Go to trademarks.justia.com',
+            'Search each name: "SHUTTER CREW", "PINSHOT", "FIELDCREW"',
+            'Look for Live marks in Class 42 (software/online platforms) or Class 35 (marketplace services)',
+            'If no live conflicts → safe to proceed with USPTO filing'
+          ]},
+          { label: 'Message to send Bevan for input', type: 'copy', copyTitle: 'DM to Bevan re: brand name', copyText: "Hey Bevan — quick one. Narrowing down the brand name for the app. Choices are SHUTTER CREW, PINSHOT, or FIELDCREW. \"Shutter\" alone has trademark conflicts. Which one feels most natural to you as someone in the Tahoe creative scene? Trying to lock this down this week so I can file the trademark and move forward with the LLC." }
+        ]
+      }
+    },
+    {
+      id: 'l3', title: 'USPTO trademark filing', priority: 'high', agent: 'Legal Agent', blocked: 'brand name decision', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Steps once name is decided', type: 'steps', steps: [
+            'Go to teas.uspto.gov (Trademark Electronic Application System)',
+            'File a TEAS Plus application (~$250/class)',
+            'Class 42: Software as a service (SaaS) platform for connecting clients with freelance outdoor sports photographers and videographers',
+            'Include a specimen (screenshot of the app with the brand name visible)',
+            'Expect 8-12 months for approval'
+          ]},
+          { label: 'DIY vs. attorney', type: 'info', content: 'For a simple word mark with no design element, TEAS Plus is very doable yourself. If you want professional help, Trademark Engine or Trademarkia offer flat-fee filing services for ~$500-800 all-in. An IP attorney runs $1,500-3,000 but gives you the most protection.' }
+        ]
+      }
+    },
+    {
+      id: 'l4', title: 'LLC formation (California)', priority: 'high', agent: 'Legal Agent', blocked: 'brand name decision', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Steps to form a California LLC', type: 'steps', steps: [
+            'Go to bizfileOnline.sos.ca.gov',
+            'File Articles of Organization — $70 filing fee',
+            'Create an Operating Agreement (template at northwestregisteredagent.com)',
+            'Get an EIN (free at irs.gov — takes 10 minutes online)',
+            'Register with California FTB — $800/yr minimum franchise tax',
+            'Open a business bank account (Mercury or Relay) using the EIN'
+          ]},
+          { label: 'California LLC note', type: 'info', content: 'California has an $800/year minimum franchise tax regardless of revenue. Worth it for liability protection, but be aware of the cost. Some founders use a Wyoming or Delaware LLC for lower cost — but if you operate in CA you still owe CA taxes, so a CA LLC is usually simpler.' }
+        ]
+      }
+    },
+    {
+      id: 'l5', title: 'California tax obligations setup', priority: 'medium', agent: 'Legal + Finance Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'What you\'ll need', type: 'steps', steps: [
+            'Register with California FTB (Franchise Tax Board) at ftb.ca.gov',
+            'File Form 3522 (LLC tax voucher) — $800 due within 3.5 months of formation',
+            'If revenue exceeds $250k/yr, additional LLC fee applies (not an issue at pre-revenue stage)',
+            'Sales tax: marketplace platforms may need to collect sales tax on transactions — consult a CPA once revenue starts',
+            'Track all business expenses from day one for deductions (Netlify, Supabase, domain, software, etc.)'
+          ]}
+        ]
+      }
+    }
+  ],
+
+  finance: [
+    {
+      id: 'f1', title: 'Open business bank account (Mercury or Relay)', priority: 'high', agent: 'Finance Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Mercury vs Relay', type: 'info', content: 'Mercury: No fees, great for startups, excellent API/integrations, FDIC insured via partner banks, integrates directly with Stripe. Best pick for a tech startup. Relay: Better for expense categorization and team spending controls, but adds friction. Recommendation: Mercury.' },
+          { label: 'What you need to open Mercury', type: 'steps', steps: [
+            'Your LLC EIN (from IRS)',
+            'Articles of Organization (from CA Secretary of State)',
+            'Personal ID (driver\'s license or passport)',
+            'Go to mercury.com and apply — usually approved in 1-3 business days'
+          ]},
+          { label: 'Mercury signup link', type: 'info', content: '<a href="https://mercury.com" target="_blank">mercury.com</a> — apply takes about 10 minutes. No minimum balance, no monthly fees.' }
+        ]
+      }
+    },
+    {
+      id: 'f2', title: 'Set up Stripe Connect', priority: 'high', agent: 'Finance Agent', blocked: 'Dev Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'What Finance needs to do', type: 'steps', steps: [
+            'Create a Stripe account at stripe.com using your business email',
+            'Enable Stripe Connect in the dashboard (Stripe → Connect → Get Started)',
+            'Link your Mercury business bank account for payouts',
+            'Set the platform fee to 8% in the Connect settings',
+            'Share your Stripe publishable key with Dev Agent for integration'
+          ]},
+          { label: 'Stripe Connect pricing note', type: 'info', content: 'Stripe charges 2.9% + 30¢ per transaction (standard). Your 8% platform fee comes out of the creator\'s share. So on a $500 booking: Stripe takes ~$14.80, Shutter takes $40, creator gets ~$445. Make sure to communicate this to creators upfront.' }
+        ]
+      }
+    },
+    {
+      id: 'f3', title: 'Tahoe day rate pricing analysis', priority: 'medium', agent: 'Finance Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Suggested research approach', type: 'steps', steps: [
+            'Search Instagram for Tahoe-based photographers/filmers and check their bio/links for rate cards',
+            'Check Thumbtack and Bark.com for local photographer rates',
+            'Message 3-4 creators directly and ask what they charge',
+            'Cross-reference with national averages: photo half-day $400-800, full-day $800-1,500; video half-day $600-1,200, full-day $1,200-2,500'
+          ]},
+          { label: 'DM to ask about rates', type: 'copy', copyTitle: 'Rate research DM', copyText: "Hey! I'm building a platform for outdoor sports creatives in Tahoe and doing some research on day rates. Would you be open to sharing what you typically charge for a half or full day shoot? Totally anonymous — just trying to make sure the platform helps creators price themselves fairly. Thanks!" }
+        ]
+      }
+    },
+    {
+      id: 'f4', title: 'Runway planning', priority: 'medium', agent: 'Finance Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Current monthly costs (estimated)', type: 'info', content: 'Netlify: Free (up to 100GB bandwidth). Supabase: Free (up to 500MB DB, 1GB storage, 50k auth users). Mapbox: Free (up to 50k map loads/mo). Resend: Free (up to 100 emails/day). Total: ~$0/month until you hit scale. First paid tier likely around 1,000 active users.' },
+          { label: 'When paid tiers kick in', type: 'steps', steps: [
+            'Netlify Pro: $19/mo (needed for custom domain, analytics, more bandwidth)',
+            'Supabase Pro: $25/mo (needed at >500MB DB or >50k auth users)',
+            'Mapbox: $0.50 per 1,000 map loads above 50k/mo',
+            'Resend: $20/mo for up to 50k emails',
+            'Stripe: 2.9% + 30¢ per transaction (only when revenue starts)',
+            'Apple Dev: $99/yr (for App Store)'
+          ]}
+        ]
+      }
+    }
+  ],
+
+  marketing: [
+    {
+      id: 'm1', title: 'Execute 30-day TikTok/Reels content calendar', priority: 'high', agent: 'Marketing Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Content themes that work', type: 'info', content: 'Behind-the-scenes of a shoot day. "How I find work as a Tahoe filmer." App demo — show the map and booking flow. Creator spotlight: 60-second profile feature. "What I charge for a half day in Tahoe." Season-specific content (powder days, summer bike park, etc.).' },
+          { label: 'Caption template — app demo', type: 'copy', copyTitle: 'TikTok/Reels caption — app demo', copyText: "Built an app that lets you find snowboard filmers, ski photographers, and drone operators near Tahoe in seconds 🗺️ Open the map → see who's available → book them. No DM back-and-forth. No agency. Just locals who know the mountain. Link in bio — sign in with Google and get on the map in 2 minutes. #Tahoe #snowboard #ski #filmer #photographer #outdoorsports #freelance #shutter" },
+          { label: 'Caption template — creator spotlight', type: 'copy', copyTitle: 'TikTok/Reels caption — creator spotlight', copyText: "Meet [Name] — based in [location], shoots [discipline] and charges $[rate] for a half day. They're on Shutter. You should be too. 🎥 Link in bio → hit Join Map → sign in with Google → you're live on the map. Takes 2 minutes. #Tahoe #filmer #snowboard #powder #outdoorcreator #shutter" }
+        ]
+      }
+    },
+    {
+      id: 'm2', title: 'Launch geo-targeted ads (50mi radius, South Lake Tahoe)', priority: 'medium', agent: 'Marketing Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Ad targeting setup', type: 'steps', steps: [
+            'Go to Meta Ads Manager (business.facebook.com)',
+            'Create a new campaign → Awareness or Traffic objective',
+            'Location: Drop a pin on South Lake Tahoe, set radius to 50 miles',
+            'Interests: skiing, snowboarding, photography, videography, drone, outdoor sports',
+            'Age: 18-35',
+            'Budget: Start at $5-10/day for 2 weeks to test',
+            'Creative: Use a screen recording of the map with creator pins — show the "Available Now" feature'
+          ]},
+          { label: 'Ad copy — creator recruitment', type: 'copy', copyTitle: 'Meta ad copy — recruit creators', copyText: "Are you a snowboard filmer, ski photographer, or drone operator near Tahoe?\n\nShutter puts you on the map — literally. Clients in your area can find you, check your availability, and book you directly.\n\nNo agency. No commission (for now). Just you and the mountain.\n\nJoin free → shutter-app.netlify.app\nHit Join Map. Sign in with Google. You're live." },
+          { label: 'Ad copy — client side', type: 'copy', copyTitle: 'Meta ad copy — attract clients', copyText: "Planning a ski trip to Tahoe? Don't show up without a filmer.\n\nShutter lets you find and book local snowboard filmers, ski photographers, and drone operators in minutes.\n\nOpen the map. See who's available. Book them.\n\n→ shutter-app.netlify.app" }
+        ]
+      }
+    },
+    {
+      id: 'm3', title: 'Reach 25 real creators on the map', priority: 'critical', agent: 'Marketing Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'Strategy', type: 'info', content: 'Start with your personal network — people who already trust you. Then expand to Instagram DMs targeting Tahoe-area creators. Be specific about what\'s in it for them: free exposure, direct bookings, no agency cut.' },
+          { label: 'DM — casual (for close friends)', type: 'copy', copyTitle: 'DM — casual friend', copyText: "Yo — I built this app called Shutter for filmers and photographers around Tahoe. It's a map where people can find and book us directly. You'd be one of the first real people on it. Just go to shutter-app.netlify.app, hit Join Map, sign in with Google, and fill out your profile. Takes like 2 min and your pin shows up on the map." },
+          { label: 'DM — semi-formal (Instagram outreach)', type: 'copy', copyTitle: 'DM — Instagram outreach', copyText: "Hey [name]! Saw your work from [location/shoot] — sick stuff. I'm building a platform called Shutter for outdoor sports creatives around Tahoe. It's a map where clients can find filmers, photographers, and drone operators like you and book directly — no middleman. Free to join right now while we're getting started. Just go to shutter-app.netlify.app, tap Join Map, sign in with Google or your email, and you're on the map." },
+          { label: 'DM — snowboard/ski community angle', type: 'copy', copyTitle: 'DM — snow community angle', copyText: "What's up [name] — built something for the Tahoe filmer/photo community and want to get you on it early. It's called Shutter — a map where riders and resorts can find and book local filmers, photogs, and drone ops. You set your rates, your availability, clients come to you. Zero commission right now while we grow. Go to shutter-app.netlify.app, hit Join Map, sign in with Google and you're live on the map in minutes. Stoked to have you on it early." },
+          { label: 'Text to send a friend', type: 'copy', copyTitle: 'iMessage to a friend', copyText: "Hey — trying to get 25 real creators on my app before I launch properly. It's a map where people find and book filmers/photographers around Tahoe. Can you join and share it with anyone you know who shoots? Just go to shutter-app.netlify.app → hit Join Map → sign in with Google. Takes 2 min and your pin shows up on the map 🙏" }
+        ]
+      }
+    },
+    {
+      id: 'm4', title: 'Gig Feed / creator strata tiers (phase 2)', priority: 'low', agent: 'Marketing Agent', done: false,
+      dropdown: {
+        sections: [
+          { label: 'What this is', type: 'info', content: 'Phase 2 marketing: once you have 25+ creators, introduce a "Gig Feed" where creators can post availability cards (like "Available this weekend at Palisades") and Creator Pro tiers where top creators get featured placement on the map and in search results.' },
+          { label: 'Messaging for Creator Pro launch', type: 'copy', copyTitle: 'Creator Pro launch announcement', copyText: "Shutter Creator Pro is here.\n\nGet featured placement on the map, priority in search, and a verified badge that tells clients you're the real deal.\n\n$[price]/month. Cancel anytime.\n\nEarly creators who joined during the free phase get 3 months free. Hit reply to lock it in." }
+        ]
+      }
+    }
+  ]
+};
+
+const DEFAULT_MESSAGES = [
+  { from: 'orchestrator', to: 'ALL', text: 'System initialized. Legal name decision is the critical path — all agents should treat this as the highest priority dependency.', time: 'Apr 15, 2026' },
+  { from: 'orchestrator', to: 'LEGAL', text: 'Brand name decision unblocks LLC, trademark, and banking. Research all three candidates and make a recommendation with reasoning.', time: 'Apr 15, 2026' },
+  { from: 'orchestrator', to: 'FINANCE', text: 'Hold on bank account opening until Legal confirms entity name. Prepare Mercury vs Relay comparison in the meantime.', time: 'Apr 15, 2026' },
+  { from: 'orchestrator', to: 'MARKETING', text: "Don't wait for legal. 30-day content calendar is ready — start executing. Focus on creator recruitment toward 25-creator goal.", time: 'Apr 15, 2026' },
+  { from: 'orchestrator', to: 'DEV', text: 'Stripe Connect is the next big milestone. Research Capacitor for App Store as a parallel track.', time: 'Apr 15, 2026' },
+];
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+function load() {
+  const saved = localStorage.getItem('shutter_tasks_v2');
+  return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_TASKS));
+}
+function loadMessages() {
+  const saved = localStorage.getItem('shutter_messages');
+  return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_MESSAGES));
+}
+function save(tasks) { localStorage.setItem('shutter_tasks_v2', JSON.stringify(tasks)); }
+function saveMessages(msgs) { localStorage.setItem('shutter_messages', JSON.stringify(msgs)); }
+
+// Track which items are expanded
+const expanded = {};
+
+// ─── RENDER ────────────────────────────────────────────────────────────────
+function renderChecklist(domain) {
+  const tasks = load();
+  const list = tasks[domain];
+  const el = document.getElementById('checklist-' + domain);
+  const countEl = document.getElementById(domain + '-count');
+  const done = list.filter(t => t.done).length;
+  if (countEl) countEl.textContent = done + '/' + list.length;
+
+  el.innerHTML = list.map(t => {
+    const isExpanded = expanded[t.id];
+    const hasDropdown = t.dropdown && t.dropdown.sections && t.dropdown.sections.length > 0;
+    return `
+    <div class="checklist-item ${t.done ? 'done' : ''}" id="item-${t.id}">
+      <div class="item-header ${isExpanded ? 'expanded' : ''}" onclick="handleItemClick('${domain}','${t.id}',event)">
+        <div class="checkbox" onclick="toggleTask('${domain}','${t.id}',event)">
+          <svg class="checkmark" viewBox="0 0 12 12"><polyline points="1.5,6 4.5,9 10.5,3"/></svg>
+        </div>
+        <div class="item-main">
+          <div class="item-title">${t.title}</div>
+          <div class="item-meta">
+            <span class="badge ${t.priority}">${t.priority}</span>
+            <span class="badge agent">${t.agent}</span>
+            ${t.blocked ? `<span class="badge blocked">Blocked: ${t.blocked}</span>` : ''}
+          </div>
+        </div>
+        ${hasDropdown ? `<div class="chevron">▶</div>` : ''}
+      </div>
+      ${hasDropdown ? `<div class="item-dropdown ${isExpanded ? 'open' : ''}" id="drop-${t.id}">${renderDropdown(t.dropdown)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  updateProgress();
+}
+
+function renderDropdown(dropdown) {
+  return dropdown.sections.map(s => {
+    if (s.type === 'copy') {
+      return `<div class="dropdown-section">
+        <div class="dropdown-label">${s.label}</div>
+        <div class="copy-block">
+          <div class="copy-block-title">${s.copyTitle}</div>
+          <div class="copy-block-text">${escHtml(s.copyText)}</div>
+          <button class="copy-btn" onclick="copyText(this, ${JSON.stringify(s.copyText)})">Copy</button>
+        </div>
+      </div>`;
+    }
+    if (s.type === 'info') {
+      return `<div class="dropdown-section">
+        <div class="dropdown-label">${s.label}</div>
+        <div class="info-block"><p>${s.content}</p></div>
+      </div>`;
+    }
+    if (s.type === 'steps') {
+      return `<div class="dropdown-section">
+        <div class="dropdown-label">${s.label}</div>
+        <div class="steps-block">
+          ${s.steps.map((st, i) => `<div class="step"><div class="step-num">${i+1}</div><span>${st}</span></div>`).join('')}
+        </div>
+      </div>`;
+    }
+    return '';
+  }).join('');
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── INTERACTIONS ──────────────────────────────────────────────────────────
+function handleItemClick(domain, id, e) {
+  // Don't expand if clicking the checkbox itself
+  if (e.target.closest('.checkbox')) return;
+  expanded[id] = !expanded[id];
+  renderChecklist(domain);
+}
+
+function toggleTask(domain, id, e) {
+  e.stopPropagation();
+  const tasks = load();
+  const t = tasks[domain].find(t => t.id === id);
+  if (t) t.done = !t.done;
+  save(tasks);
+  renderChecklist(domain);
+}
+
+function addTask(domain) {
+  const input = document.getElementById('new-' + domain + '-task');
+  const title = input.value.trim();
+  if (!title) return;
+  const tasks = load();
+  tasks[domain].push({
+    id: domain + Date.now(),
+    title,
+    priority: 'medium',
+    agent: domain.charAt(0).toUpperCase() + domain.slice(1) + ' Agent',
+    done: false,
+    dropdown: null
+  });
+  save(tasks);
+  renderChecklist(domain);
+  input.value = '';
+}
+
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function updateProgress() {
+  const tasks = load();
+  ['dev','legal','finance','marketing'].forEach(d => {
+    const list = tasks[d];
+    const pct = list.length ? Math.round((list.filter(t=>t.done).length / list.length) * 100) : 0;
+    const bar = document.getElementById(d + '-bar');
+    const pctEl = document.getElementById(d + '-pct');
+    if (bar) bar.style.width = pct + '%';
+    if (pctEl) pctEl.textContent = pct + '%';
+  });
+}
+
+function renderMessages() {
+  const msgs = loadMessages();
+  const el = document.getElementById('message-list');
+  el.innerHTML = msgs.map(m => `
+    <div class="message">
+      <div class="msg-from ${m.from}">${m.from.toUpperCase()}</div>
+      <div class="msg-content">
+        <div class="msg-to">→ ${m.to}</div>
+        <div class="msg-text">${escHtml(m.text)}</div>
+        <div class="msg-time">${m.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+function sendMessage() {
+  const from = document.getElementById('msg-from').value;
+  const to = document.getElementById('msg-to').value;
+  const text = document.getElementById('msg-text').value.trim();
+  if (!text) return;
+  const msgs = loadMessages();
+  const now = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  msgs.push({ from, to, text, time: now });
+  saveMessages(msgs);
+  renderMessages();
+  document.getElementById('msg-text').value = '';
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+['dev','legal','finance','marketing'].forEach(renderChecklist);
+renderMessages();
+updateProgress();
+</script>
+</body>
+</html>
