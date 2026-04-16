@@ -620,4 +620,48 @@ document.getElementById('locate-btn').addEventListener('click',()=>{
     {timeout:8000,enableHighAccuracy:true}
   );
 });
+// ─── LOCATION AUTOCOMPLETE (join form) ──────────────────────────────────────
+let _jnLocTimer=null;
+function jnFormatPlace(f){
+  const city=f.text||f.place_name.split(',')[0];
+  const region=f.context?.find(c=>c.id.startsWith('region'));
+  const state=region?.short_code?.split('-')[1]||region?.text||'';
+  return state?`${city}, ${state}`:f.place_name.split(',').slice(0,2).join(',').trim();
+}
+async function fetchJnSuggestions(q){
+  try{
+    const url=`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&types=place,locality,neighborhood,district&limit=6&proximity=-120.0324,39.0968&country=us,ca`;
+    const res=await fetch(url);
+    const data=await res.json();
+    renderJnSuggestions(data.features||[]);
+  }catch(e){closeJnSuggestions();}
+}
+function renderJnSuggestions(features){
+  const box=document.getElementById('jn-location-suggestions');
+  if(!box)return;
+  if(!features.length){closeJnSuggestions();return;}
+  box.innerHTML=features.map(f=>{
+    const short=jnFormatPlace(f);
+    const full=f.place_name;
+    return`<div class="jn-suggestion" onmousedown="selectJnSuggestion('${escapeHtml(short)}')">${escapeHtml(short)}<span style="color:#6b7280;font-size:.75rem;margin-left:6px;">${escapeHtml(full.split(',').slice(1,3).join(',').trim())}</span></div>`;
+  }).join('');
+  box.style.display='block';
+}
+function selectJnSuggestion(short){
+  document.getElementById('jn-location').value=short;
+  closeJnSuggestions();
+}
+function closeJnSuggestions(){
+  const box=document.getElementById('jn-location-suggestions');
+  if(box)box.style.display='none';
+}
+window.selectJnSuggestion=selectJnSuggestion;
+document.getElementById('jn-location').addEventListener('input',e=>{
+  clearTimeout(_jnLocTimer);
+  const q=e.target.value.trim();
+  if(q.length<2){closeJnSuggestions();return;}
+  _jnLocTimer=setTimeout(()=>fetchJnSuggestions(q),300);
+});
+document.getElementById('jn-location').addEventListener('blur',()=>setTimeout(closeJnSuggestions,150));
+document.getElementById('jn-location').addEventListener('keydown',e=>{if(e.key==='Escape')closeJnSuggestions();});
 initAuth();

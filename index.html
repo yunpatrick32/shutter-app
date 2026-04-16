@@ -795,6 +795,9 @@
       box-shadow: 0 8px 40px rgba(0,0,0,.8);
     }
     #locate-btn.hidden { display: none !important; }
+    .jn-suggestion { padding:10px 14px;cursor:pointer;font-size:.85rem;color:#f9fafb;border-bottom:1px solid #374151;transition:background .1s; }
+    .jn-suggestion:last-child { border-bottom:none; }
+    .jn-suggestion:hover { background:#374151; }
     #locate-btn:hover {
       background: rgba(129,140,248,0.2);
       border-color: rgba(129,140,248,0.4);
@@ -1156,9 +1159,10 @@
       <label>Full name *</label>
       <input type="text" class="finput" id="jn-name" placeholder="Your name" />
     </div>
-    <div class="fgroup">
+    <div class="fgroup" style="position:relative;">
       <label>Location *</label>
-      <input type="text" class="finput" id="jn-location" placeholder="e.g. Truckee, Palisades, South Lake" />
+      <input type="text" class="finput" id="jn-location" placeholder="e.g. Truckee, Palisades, South Lake" autocomplete="off" />
+      <div id="jn-location-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:300;background:#1f2937;border:1px solid #374151;border-radius:10px;overflow:hidden;margin-top:4px;box-shadow:0 8px 24px rgba(0,0,0,.5);max-height:220px;overflow-y:auto;"></div>
     </div>
     <div class="fgroup">
       <label>Specialties *</label>
@@ -1287,7 +1291,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=70"></script>
+<script type="module" src="src/app.js?v=71"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
