@@ -31,7 +31,7 @@ function createPinEl(creator){ const meta=TAG_META[creator.primaryTag]; const el
   el.innerHTML=`<div class="pin-ring${isAvailNow(creator)?' pin-avail-now':''}" style="--ring:${meta.color};--bg:${meta.bg};${photoStyle}">${initialsHtml}<span class="pin-avail ${av?'avail-yes':'avail-no'}"></span></div><span class="pin-label" style="color:${meta.color}">${creator.primaryTag}</span>`; el.addEventListener('click',e=>{e.stopPropagation();openCard(creator);}); return el; }
 function renderMarkers(list){ Object.values(markerMap).forEach(({marker})=>marker.remove()); markerMap={}; list.forEach(c=>{const el=createPinEl(c);const marker=new mapboxgl.Marker({element:el,anchor:'bottom'}).setLngLat([c.lng,c.lat]).addTo(map);markerMap[c.id]={marker,el};}); document.getElementById('creator-count').textContent=`${list.length} creator${list.length!==1?'s':''}`; }
 const DAY_ABBR=['SUN','MON','TUE','WED','THU','FRI','SAT'];
-function openCard(creator){ closeAllPanels(); selectedId=creator.id; activeCreator=creator; const meta=TAG_META[creator.primaryTag]; const av=creator.schedule[0]; Object.entries(markerMap).forEach(([id,{el}])=>el.classList.toggle('active',Number(id)===creator.id||id===creator.id)); const avatar=document.getElementById('card-avatar'); if(creator.avatarUrl){avatar.textContent='';avatar.style.cssText=`background:${meta.bg};border-color:${meta.color};background-image:url(${creator.avatarUrl});background-size:cover;background-position:center;`;}else{avatar.textContent=creator.initials;avatar.style.cssText=`background:${meta.bg};border-color:${meta.color};color:${meta.color};`; } document.getElementById('card-name').textContent=creator.name; const verBadge=document.getElementById('card-verified'); if(creator.instagramHandle){verBadge.style.display='inline-flex';}else{verBadge.style.display='none';} const igEl=document.getElementById('card-instagram'); if(creator.instagramHandle){igEl.innerHTML=`<a href="https://instagram.com/${encodeURIComponent(creator.instagramHandle)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;color:#818cf8;text-decoration:none;">📸 @${escapeHtml(creator.instagramHandle)}</a>`;igEl.style.display='block';}else{igEl.style.display='none';} document.getElementById('card-location').textContent=`📍 ${creator.location}`; const filled=Math.round(creator.rating); document.getElementById('card-rating').innerHTML=`<span style="color:${meta.color}">${'★'.repeat(filled)}${'☆'.repeat(5-filled)}</span> <span style="color:#6b7280;font-size:0.75rem">${creator.rating} (${creator.reviewCount} reviews)</span>`; document.getElementById('card-tags').innerHTML=creator.tags.map(t=>{const m=TAG_META[t];return`<span class="tag-chip" style="background:${m.color}18;color:${m.color};border-color:${m.color}40">${m.label}</span>`;}).join(''); document.getElementById('card-bio').textContent=creator.bio; document.getElementById('card-gear').innerHTML=creator.gear.map(g=>`<li class="gear-item"><span class="gear-dot">▸</span>${g}</li>`).join(''); const effectiveShowRates=creator.showRates; if(effectiveShowRates){document.getElementById('card-rates').innerHTML=[{label:'Half Day',val:`$${creator.rates.halfDay}`},{label:'Full Day',val:`$${creator.rates.fullDay}`},{label:'Custom',val:'On request'}].map(r=>`<div class="rate-box"><div class="rate-val">${r.val}</div><div class="rate-label">${r.label}</div></div>`).join('');document.getElementById('card-rates').style.display='flex';document.getElementById('card-rates-hidden').style.display='none';}else{document.getElementById('card-rates').style.display='none';document.getElementById('card-rates-hidden').style.display='flex';} const portUrl=creator.portfolioUrl; const portWrap=document.getElementById('card-portfolio-wrap'); if(portUrl){document.getElementById('card-portfolio-link').href=portUrl;portWrap.style.display='block';}else{portWrap.style.display='none';} const badge=document.getElementById('card-avail-badge'); if(isAvailNow(creator)){badge.classList.add('visible');}else{badge.classList.remove('visible');} const today=new Date(); document.getElementById('card-avail-grid').innerHTML=creator.schedule.map((open,i)=>{const d=new Date(today);d.setDate(today.getDate()+i);const label=i===0?'TODAY':DAY_ABBR[d.getDay()];return`<div class="avail-cell ${open?'avail-open':'avail-busy'} ${i===0?'avail-today':''}"><span class="avail-dname">${label}</span><span class="avail-dnum">${d.getDate()}</span><span class="avail-dot"></span></div>`;}).join(''); const bookBtn=document.getElementById('btn-book'); bookBtn.textContent=av?'Book Now':'Request Booking'; bookBtn.style.background=av?'#16a34a':'#374151'; renderCardPortfolioGrid(creator); document.getElementById('profile-card').classList.add('open'); document.getElementById('overlay').classList.add('active'); map.flyTo({center:[creator.lng,creator.lat],zoom:Math.max(map.getZoom(),11.5),pitch:52,duration:900,offset:[0,-120],essential:true}); if(creator.id)supabase.rpc('increment_view_count',{profile_id:creator.id}).catch(()=>{}); }
+function openCard(creator){ closeAllPanels(); selectedId=creator.id; activeCreator=creator; const meta=TAG_META[creator.primaryTag]; const av=creator.schedule[0]; Object.entries(markerMap).forEach(([id,{el}])=>el.classList.toggle('active',Number(id)===creator.id||id===creator.id)); const avatar=document.getElementById('card-avatar'); if(creator.avatarUrl){avatar.textContent='';avatar.style.cssText=`background:${meta.bg};border-color:${meta.color};background-image:url(${creator.avatarUrl});background-size:cover;background-position:center;`;}else{avatar.textContent=creator.initials;avatar.style.cssText=`background:${meta.bg};border-color:${meta.color};color:${meta.color};`; } document.getElementById('card-name').textContent=creator.name; const verBadge=document.getElementById('card-verified'); if(creator.instagramHandle){verBadge.style.display='inline-flex';}else{verBadge.style.display='none';} const igEl=document.getElementById('card-instagram'); if(creator.instagramHandle){igEl.innerHTML=`<a href="https://instagram.com/${encodeURIComponent(creator.instagramHandle)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;color:#818cf8;text-decoration:none;">📸 @${escapeHtml(creator.instagramHandle)}</a>`;igEl.style.display='block';}else{igEl.style.display='none';} document.getElementById('card-location').textContent=`📍 ${creator.location}`; const filled=Math.round(creator.rating); document.getElementById('card-rating').innerHTML=`<span style="color:${meta.color}">${'★'.repeat(filled)}${'☆'.repeat(5-filled)}</span> <span style="color:#6b7280;font-size:0.75rem">${creator.rating} (${creator.reviewCount} reviews)</span>`; const sortedTags=[creator.primaryTag,...(creator.tags||[]).filter(t=>t!==creator.primaryTag)]; document.getElementById('card-tags').innerHTML=sortedTags.map(t=>{const m=TAG_META[t];if(!m)return'';const isPrimary=t===creator.primaryTag;return`<span class="tag-chip" style="background:${m.color}${isPrimary?'33':'18'};color:${m.color};border-color:${m.color}${isPrimary?'70':'40'};${isPrimary?'font-weight:700;':''}">${isPrimary?'👑 ':''}${m.label}</span>`;}).join(''); document.getElementById('card-bio').textContent=creator.bio; document.getElementById('card-gear').innerHTML=creator.gear.map(g=>`<li class="gear-item"><span class="gear-dot">▸</span>${g}</li>`).join(''); const effectiveShowRates=creator.showRates; if(effectiveShowRates){document.getElementById('card-rates').innerHTML=[{label:'Half Day',val:`$${creator.rates.halfDay}`},{label:'Full Day',val:`$${creator.rates.fullDay}`},{label:'Custom',val:'On request'}].map(r=>`<div class="rate-box"><div class="rate-val">${r.val}</div><div class="rate-label">${r.label}</div></div>`).join('');document.getElementById('card-rates').style.display='flex';document.getElementById('card-rates-hidden').style.display='none';}else{document.getElementById('card-rates').style.display='none';document.getElementById('card-rates-hidden').style.display='flex';} const portUrl=creator.portfolioUrl; const portWrap=document.getElementById('card-portfolio-wrap'); if(portUrl){document.getElementById('card-portfolio-link').href=portUrl;portWrap.style.display='block';}else{portWrap.style.display='none';} const badge=document.getElementById('card-avail-badge'); if(isAvailNow(creator)){badge.classList.add('visible');}else{badge.classList.remove('visible');} const today=new Date(); document.getElementById('card-avail-grid').innerHTML=creator.schedule.map((open,i)=>{const d=new Date(today);d.setDate(today.getDate()+i);const label=i===0?'TODAY':DAY_ABBR[d.getDay()];return`<div class="avail-cell ${open?'avail-open':'avail-busy'} ${i===0?'avail-today':''}"><span class="avail-dname">${label}</span><span class="avail-dnum">${d.getDate()}</span><span class="avail-dot"></span></div>`;}).join(''); const bookBtn=document.getElementById('btn-book'); bookBtn.textContent=av?'Book Now':'Request Booking'; bookBtn.style.background=av?'#16a34a':'#374151'; renderCardPortfolioGrid(creator); document.getElementById('profile-card').classList.add('open'); document.getElementById('overlay').classList.add('active'); map.flyTo({center:[creator.lng,creator.lat],zoom:Math.max(map.getZoom(),11.5),pitch:52,duration:900,offset:[0,-120],essential:true}); if(creator.id)supabase.rpc('increment_view_count',{profile_id:creator.id}).catch(()=>{}); }
 function closeCard(){ selectedId=null; document.getElementById('profile-card').classList.remove('open'); document.getElementById('overlay').classList.remove('active'); Object.values(markerMap).forEach(({el})=>el.classList.remove('active')); }
 function openBooking(){ if(!activeCreator)return; closeAllPanels(); const meta=TAG_META[activeCreator.primaryTag]; const ba=document.getElementById('booking-avatar'); ba.textContent=activeCreator.initials; ba.style.background=meta.bg; ba.style.borderColor=meta.color; ba.style.color=meta.color; document.getElementById('booking-name').textContent=activeCreator.name; document.getElementById('booking-location').textContent=activeCreator.location; document.getElementById('booking-type').value='snowboard'; document.getElementById('booking-date').value=''; document.getElementById('booking-notes').value=''; document.querySelectorAll('.deliverable-check').forEach(cb=>cb.checked=false); setDuration('half'); document.getElementById('booking-panel').classList.add('open'); }
 function closeBooking(){ document.getElementById('booking-panel').classList.remove('open'); }
@@ -385,6 +385,7 @@ function renderMpSpecialtiesGrid(){
   const counter=document.getElementById('mp-spec-counter');
   if(!grid||!userProfile)return;
   const active=userProfile.tags||[];
+  const primary=userProfile.primaryTag||(active[0]||'');
   const groups=[
     {label:'Outdoor',   tags:['snowboard','ski','drone','model','off-road']},
     {label:'Camera',    tags:['photo','video','film-photo','broll','dp','1ac','2ac']},
@@ -393,33 +394,54 @@ function renderMpSpecialtiesGrid(){
     {label:'Other',     tags:['gaffer','stylist']},
   ];
   let html='';
-  groups.forEach(g=>{
-    html+=`<div style="width:100%;font-size:.65rem;font-weight:700;color:#4b5563;letter-spacing:.08em;margin:${g===groups[0]?'0':'12px'} 0 6px;text-transform:uppercase;">${g.label}</div>`;
-    html+=g.tags.map(tag=>{
-      const m=TAG_META[tag]; if(!m)return'';
+  groups.forEach((g,gi)=>{
+    html+=`<div style="width:100%;font-size:.65rem;font-weight:700;color:#4b5563;letter-spacing:.08em;margin:${gi===0?'0':'12px'} 0 6px;text-transform:uppercase;">${g.label}</div>`;
+    g.tags.forEach(tag=>{
+      const m=TAG_META[tag]; if(!m)return;
       const on=active.includes(tag);
-      return`<button onclick="toggleSpecialty('${tag}')" style="padding:7px 14px;border-radius:20px;border:1px solid ${on?m.color:'#374151'};background:${on?m.color+'22':'#1f2937'};color:${on?m.color:'#6b7280'};font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;">${m.label}</button>`;
-    }).join('');
+      const isPrimary=on&&tag===primary;
+      if(on){
+        const canRemove=active.length>1&&!isPrimary;
+        html+=`<div style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;position:relative;">`;
+        html+=`<button onclick="setPrimaryTag('${tag}')" title="Set as primary" style="padding:7px 14px;border-radius:20px;border:1.5px solid ${m.color};background:${isPrimary?m.color+'33':m.color+'18'};color:${m.color};font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s;">${isPrimary?'👑 ':''}${m.label}</button>`;
+        if(canRemove)html+=`<button onclick="removeSpecialty('${tag}')" style="position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:#111827;border:1px solid #374151;color:#9ca3af;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;z-index:1;">✕</button>`;
+        if(isPrimary)html+=`<span style="font-size:.58rem;color:${m.color};font-weight:700;letter-spacing:.03em;">PRIMARY</span>`;
+        html+=`</div>`;
+      }else{
+        html+=`<button onclick="toggleSpecialty('${tag}')" style="padding:7px 14px;border-radius:20px;border:1px solid #374151;background:#1f2937;color:#6b7280;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;">${m.label}</button>`;
+      }
+    });
   });
   grid.innerHTML=html;
-  if(counter)counter.textContent=`${active.length}/5 selected`;
+  if(counter)counter.innerHTML=`${active.length}/5 &nbsp;·&nbsp; <span style="color:#4b5563;">tap active tag to set primary</span>`;
 }
 function toggleSpecialty(tag){
   if(!userProfile)return;
   const tags=[...(userProfile.tags||[])];
-  const idx=tags.indexOf(tag);
-  if(idx===-1){
-    if(tags.length>=5){showToast('Max 5 specialties','#ef4444');return;}
-    tags.push(tag);
-  }else{
-    if(tags.length<=1){showToast('Need at least 1 specialty','#ef4444');return;}
-    tags.splice(idx,1);
-  }
+  if(tags.includes(tag)){setPrimaryTag(tag);return;}
+  if(tags.length>=5){showToast('Max 5 specialties','#ef4444');return;}
+  tags.push(tag);
   userProfile.tags=tags;
-  userProfile.primaryTag=tags[0];
+  if(!userProfile.primaryTag)userProfile.primaryTag=tags[0];
+  renderMpSpecialtiesGrid();
+}
+function setPrimaryTag(tag){
+  if(!userProfile||!userProfile.tags.includes(tag))return;
+  if(userProfile.primaryTag===tag)return;
+  userProfile.primaryTag=tag;
+  renderMpSpecialtiesGrid();
+  showToast(`👑 ${TAG_META[tag]?.label||tag} set as primary`,'#818cf8');
+}
+function removeSpecialty(tag){
+  if(!userProfile)return;
+  if(userProfile.tags.length<=1){showToast('Need at least 1 specialty','#ef4444');return;}
+  userProfile.tags=userProfile.tags.filter(t=>t!==tag);
+  if(userProfile.primaryTag===tag)userProfile.primaryTag=userProfile.tags[0];
   renderMpSpecialtiesGrid();
 }
 window.toggleSpecialty=toggleSpecialty;
+window.setPrimaryTag=setPrimaryTag;
+window.removeSpecialty=removeSpecialty;
 // ─── AVAILABILITY ────────────────────────────────────────────────────────────
 function renderMpScheduleGrid(){
   const grid=document.getElementById('mp-schedule-grid');
