@@ -64,12 +64,13 @@ let _calIsRange=false;
 let _calPickState='IDLE'; // IDLE | PICKING_END | DONE
 let _calStart=null, _calEnd=null, _calHover=null;
 let _calMonth=new Date().getMonth(), _calYear=new Date().getFullYear();
+let _calJustClicked=false; // blocks hover events right after a click
 function toISO(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function isSameDay(a,b){ return a&&b&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
 function fmtDateShort(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
 function fmtDateRange(a,b){ const sy=a.getFullYear()===b.getFullYear(),sm=a.getMonth()===b.getMonth(); if(sy&&sm)return`${a.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${b.getDate()}, ${b.getFullYear()}`; if(sy)return`${a.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${b.toLocaleDateString('en-US',{month:'short',day:'numeric'})}, ${b.getFullYear()}`; return`${fmtDateShort(a)} – ${fmtDateShort(b)}`; }
 function calReset(){
-  _calPickState='IDLE'; _calStart=null; _calEnd=null; _calHover=null;
+  _calPickState='IDLE'; _calStart=null; _calEnd=null; _calHover=null; _calJustClicked=false;
   document.getElementById('booking_date_start').value=''; document.getElementById('booking_date_end').value='';
   const f=document.getElementById('booking-date-field'); f.textContent='Select a date'; f.classList.remove('has-value');
 }
@@ -78,19 +79,17 @@ function calClose(){ document.getElementById('cal-dropdown').classList.remove('o
 function toggleCalDropdown(){
   const dd=document.getElementById('cal-dropdown');
   if(dd.classList.contains('open')){ calClose(); return; }
-  // Re-opening after done: reset so user can pick fresh
   if(_calPickState==='DONE'){ calReset(); }
   calOpen();
 }
 function calSelect(d){
   const field=document.getElementById('booking-date-field');
   if(!_calIsRange){
-    // Single day: select → highlight → close
     _calStart=d; _calEnd=d; _calPickState='DONE';
     field.textContent=fmtDateShort(d); field.classList.add('has-value');
     document.getElementById('booking_date_start').value=toISO(d);
     document.getElementById('booking_date_end').value=toISO(d);
-    renderCal(); setTimeout(calClose,120); return;
+    updateCalClasses(); setTimeout(calClose,120); return;
   }
   // Range mode state machine
   if(_calPickState==='IDLE'||_calPickState==='DONE'){
@@ -98,16 +97,33 @@ function calSelect(d){
     field.textContent=fmtDateShort(d)+' – …'; field.classList.add('has-value');
     document.getElementById('booking_date_start').value=toISO(d);
     document.getElementById('booking_date_end').value='';
-    renderCal(); return;
+    updateCalClasses(); return;
   }
-  // PICKING_END: second click
-  if(isSameDay(d,_calStart)){ return; } // ignore clicking same day
+  // PICKING_END → second click finalises range
+  if(isSameDay(d,_calStart)){ return; }
+  _calJustClicked=true; setTimeout(()=>{ _calJustClicked=false; }, 50);
   let s=_calStart,e=d; if(e<s){s=d;e=_calStart;}
-  _calStart=s; _calEnd=e; _calPickState='DONE';
+  _calStart=s; _calEnd=e; _calPickState='DONE'; _calHover=null;
   field.textContent=fmtDateRange(s,e); field.classList.add('has-value');
   document.getElementById('booking_date_start').value=toISO(s);
   document.getElementById('booking_date_end').value=toISO(e);
-  renderCal(); setTimeout(calClose,120);
+  updateCalClasses(); setTimeout(calClose,120);
+}
+// Re-apply CSS classes to existing cells WITHOUT rebuilding the DOM
+function updateCalClasses(){
+  const container=document.getElementById('cal-days'); if(!container)return;
+  const today=new Date(); today.setHours(0,0,0,0);
+  container.querySelectorAll('button.cal-day[data-ts]').forEach(btn=>{
+    const date=new Date(+btn.dataset.ts);
+    btn.classList.remove('cal-day-selected','cal-day-in-range','cal-day-range-preview');
+    const isStart=isSameDay(date,_calStart), isEnd=isSameDay(date,_calEnd);
+    if(isStart||isEnd){ btn.classList.add('cal-day-selected'); }
+    else if(_calStart&&_calEnd&&date>_calStart&&date<_calEnd){ btn.classList.add('cal-day-in-range'); }
+    else if(_calIsRange&&_calPickState==='PICKING_END'&&_calStart&&_calHover){
+      const lo=_calHover<_calStart?_calHover:_calStart, hi=_calHover<_calStart?_calStart:_calHover;
+      if(date>lo&&date<hi) btn.classList.add('cal-day-range-preview');
+    }
+  });
 }
 function renderCal(){
   const container=document.getElementById('cal-days'); container.innerHTML='';
@@ -117,24 +133,28 @@ function renderCal(){
   const daysInMonth=new Date(_calYear,_calMonth+1,0).getDate();
   const today=new Date(); today.setHours(0,0,0,0);
   for(let i=0;i<firstDay;i++){ const s=document.createElement('span'); s.className='cal-day cal-day-empty'; container.appendChild(s); }
-  for(let d=1;d<=daysInMonth;d++){
-    const btn=document.createElement('button'); btn.type='button'; btn.className='cal-day'; btn.textContent=d;
-    const date=new Date(_calYear,_calMonth,d);
+  for(let day=1;day<=daysInMonth;day++){
+    const date=new Date(_calYear,_calMonth,day);
+    const btn=document.createElement('button'); btn.type='button'; btn.className='cal-day';
+    btn.textContent=day; btn.dataset.ts=date.getTime();
     if(date<today){ btn.classList.add('cal-day-disabled'); }
     else{
       if(isSameDay(date,today)) btn.classList.add('cal-day-today');
-      const isStart=isSameDay(date,_calStart), isEnd=isSameDay(date,_calEnd);
-      if(isStart||isEnd){ btn.classList.add('cal-day-selected'); }
-      else if(_calStart&&_calEnd&&date>_calStart&&date<_calEnd){ btn.classList.add('cal-day-in-range'); }
-      else if(_calIsRange&&_calPickState==='PICKING_END'&&_calStart&&_calHover){
-        const lo=_calHover<_calStart?_calHover:_calStart, hi=_calHover<_calStart?_calStart:_calHover;
-        if(date>lo&&date<hi) btn.classList.add('cal-day-range-preview');
-      }
       btn.addEventListener('click',()=>calSelect(date));
-      if(_calIsRange&&_calPickState==='PICKING_END'){ btn.addEventListener('mouseenter',()=>{ _calHover=date; renderCal(); }); }
     }
     container.appendChild(btn);
   }
+  // Single mouseover listener on the container — no per-cell listeners, stable DOM
+  container.addEventListener('mouseover',e=>{
+    if(_calJustClicked||_calPickState!=='PICKING_END'||!_calIsRange) return;
+    const btn=e.target.closest('button.cal-day[data-ts]');
+    if(!btn||btn.classList.contains('cal-day-disabled')) return;
+    const hovered=new Date(+btn.dataset.ts);
+    if(isSameDay(hovered,_calHover)) return; // no change
+    _calHover=hovered;
+    updateCalClasses();
+  });
+  updateCalClasses();
 }
 function setCalRangeMode(isRange){
   _calIsRange=isRange;
