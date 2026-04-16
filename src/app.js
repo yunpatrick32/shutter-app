@@ -13,6 +13,7 @@ const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TMtgGBBgXNRGdD6p27f1h7xUkvxJfPXi1PdxLj
 const stripe = typeof Stripe !== 'undefined' ? Stripe(STRIPE_PUBLISHABLE_KEY) : null;
 let _stripeElements = null, _currentBookingData = null;
 let jnPortfolioFiles = [];
+let _offerSectionOpen=false;
 const myProfile = { name:'Patrick Yun', initials:'PY', location:'Truckee, CA', primaryTag:'snowboard', tags:['snowboard','video','off-road'], bio:'Snowboard filmer and content creator based in Truckee. Off-road capable — no location too remote.', gear:['Sony FX3','DJI RS3 gimbal','Premiere Pro','Tacoma TRD — off-road'], rates:{halfDay:400,fullDay:700}, showRates:false, portfolioUrl:'', stats:{views:12,inquiries:3,earnings:1100} };
 mapboxgl.accessToken = MAPBOX_TOKEN;
 const map = new mapboxgl.Map({ container:'map', style:'mapbox://styles/mapbox/dark-v11', center:LAKE_TAHOE, zoom:10.5, pitch:50, bearing:-10, antialias:true, attributionControl:false });
@@ -56,7 +57,7 @@ function renderMarkers(list){ Object.values(markerMap).forEach(({marker})=>marke
 const DAY_ABBR=['SUN','MON','TUE','WED','THU','FRI','SAT'];
 function openCard(creator){ _suppressMapClose=true; requestAnimationFrame(()=>{_suppressMapClose=false;}); closeAllPanels(); selectedId=creator.id; activeCreator=creator; const meta=TAG_META[creator.primaryTag]; const av=creator.schedule[0]; Object.entries(markerMap).forEach(([id,{el}])=>el.classList.toggle('active',Number(id)===creator.id||id===creator.id)); const avatar=document.getElementById('card-avatar'); if(creator.avatarUrl){avatar.textContent='';avatar.style.cssText=`background:${meta.bg};border-color:${meta.color};background-image:url(${creator.avatarUrl});background-size:cover;background-position:center;`;}else{avatar.textContent=creator.initials;avatar.style.cssText=`background:${meta.bg};border-color:${meta.color};color:${meta.color};`; } document.getElementById('card-name').textContent=creator.name; const verBadge=document.getElementById('card-verified'); if(creator.instagramHandle){verBadge.style.display='inline-flex';}else{verBadge.style.display='none';} const igEl=document.getElementById('card-instagram'); if(creator.instagramHandle){igEl.innerHTML=`<a href="https://instagram.com/${encodeURIComponent(creator.instagramHandle)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;color:#818cf8;text-decoration:none;">📸 @${escapeHtml(creator.instagramHandle)}</a>`;igEl.style.display='block';}else{igEl.style.display='none';} document.getElementById('card-location').textContent=`📍 ${creator.location}`; const filled=Math.round(creator.rating); document.getElementById('card-rating').innerHTML=`<span style="color:${meta.color}">${'★'.repeat(filled)}${'☆'.repeat(5-filled)}</span> <span style="color:#6b7280;font-size:0.75rem">${creator.rating} (${creator.reviewCount} reviews)</span>`; const sortedTags=[creator.primaryTag,...(creator.tags||[]).filter(t=>t!==creator.primaryTag)]; document.getElementById('card-tags').innerHTML=sortedTags.map(t=>{const m=TAG_META[t];if(!m)return'';const isPrimary=t===creator.primaryTag;return`<span class="tag-chip" style="background:${m.color}${isPrimary?'33':'18'};color:${m.color};border-color:${m.color}${isPrimary?'70':'40'};${isPrimary?'font-weight:700;':''}">${isPrimary?'👑 ':''}${m.label}</span>`;}).join(''); document.getElementById('card-bio').textContent=creator.bio; document.getElementById('card-gear').innerHTML=creator.gear.map(g=>`<li class="gear-item"><span class="gear-dot">▸</span>${g}</li>`).join(''); const effectiveShowRates=creator.showRates; if(effectiveShowRates){document.getElementById('card-rates').innerHTML=[{label:'Half Day',val:`$${creator.rates.halfDay}`},{label:'Full Day',val:`$${creator.rates.fullDay}`},{label:'Custom',val:'On request'}].map(r=>`<div class="rate-box"><div class="rate-val">${r.val}</div><div class="rate-label">${r.label}</div></div>`).join('');document.getElementById('card-rates').style.display='flex';document.getElementById('card-rates-hidden').style.display='none';}else{document.getElementById('card-rates').style.display='none';document.getElementById('card-rates-hidden').style.display='flex';} const portUrl=creator.portfolioUrl; const portWrap=document.getElementById('card-portfolio-wrap'); if(portUrl){document.getElementById('card-portfolio-link').href=portUrl;portWrap.style.display='block';}else{portWrap.style.display='none';} const badge=document.getElementById('card-avail-badge'); if(isAvailNow(creator)){badge.classList.add('visible');}else{badge.classList.remove('visible');} const today=new Date(); document.getElementById('card-avail-grid').innerHTML=creator.schedule.map((open,i)=>{const d=new Date(today);d.setDate(today.getDate()+i);const label=i===0?'TODAY':DAY_ABBR[d.getDay()];return`<div class="avail-cell ${open?'avail-open':'avail-busy'} ${i===0?'avail-today':''}"><span class="avail-dname">${label}</span><span class="avail-dnum">${d.getDate()}</span><span class="avail-dot"></span></div>`;}).join(''); const bookBtn=document.getElementById('btn-book'); bookBtn.textContent=av?'Book Now':'Request Booking'; bookBtn.style.background=av?'#16a34a':'#374151'; renderCardPortfolioGrid(creator); document.getElementById('profile-card').classList.add('open'); document.getElementById('overlay').classList.add('active'); map.flyTo({center:[creator.lng,creator.lat],zoom:Math.max(map.getZoom(),11.5),pitch:52,duration:900,offset:[0,-120],essential:true}); if(creator.id)supabase.rpc('increment_view_count',{profile_id:creator.id}).then(()=>{},()=>{}); setLocateButtonVisibility(false); }
 function closeCard(){ selectedId=null; document.getElementById('profile-card').classList.remove('open'); document.getElementById('overlay').classList.remove('active'); Object.values(markerMap).forEach(({el})=>el.classList.remove('active')); setLocateButtonVisibility(true); }
-function openBooking(){ if(!activeCreator)return; closeAllPanels(); const meta=TAG_META[activeCreator.primaryTag]; const ba=document.getElementById('booking-avatar'); ba.textContent=activeCreator.initials; ba.style.background=meta.bg; ba.style.borderColor=meta.color; ba.style.color=meta.color; document.getElementById('booking-name').textContent=activeCreator.name; document.getElementById('booking-location').textContent=activeCreator.location; document.getElementById('booking-type').value=''; document.getElementById('booking-notes').value=''; document.querySelectorAll('.deliverable-check').forEach(cb=>cb.checked=false); _calIsRange=false; const _cbMulti=document.getElementById('cal-multi-checkbox'); if(_cbMulti)_cbMulti.checked=false; calReset(); document.getElementById('duration-group').style.display=''; setDuration('half'); document.getElementById('booking-details-step').style.display=''; document.getElementById('booking-payment-step').style.display='none'; document.getElementById('payment-element').innerHTML=''; document.getElementById('payment-message').style.display='none'; _stripeElements=null; _currentBookingData=null; document.getElementById('booking-panel').classList.add('open'); setLocateButtonVisibility(false); }
+function openBooking(){ if(!activeCreator)return; closeAllPanels(); const meta=TAG_META[activeCreator.primaryTag]; const ba=document.getElementById('booking-avatar'); ba.textContent=activeCreator.initials; ba.style.background=meta.bg; ba.style.borderColor=meta.color; ba.style.color=meta.color; document.getElementById('booking-name').textContent=activeCreator.name; document.getElementById('booking-location').textContent=activeCreator.location; document.getElementById('booking-type').value=''; document.getElementById('booking-notes').value=''; document.querySelectorAll('.deliverable-check').forEach(cb=>cb.checked=false); _calIsRange=false; const _cbMulti=document.getElementById('cal-multi-checkbox'); if(_cbMulti)_cbMulti.checked=false; calReset(); document.getElementById('duration-group').style.display=''; setDuration('half'); document.getElementById('booking-details-step').style.display=''; document.getElementById('booking-payment-step').style.display='none'; document.getElementById('payment-element').innerHTML=''; document.getElementById('payment-message').style.display='none'; _stripeElements=null; _currentBookingData=null; _offerSectionOpen=false; const _ofSec=document.getElementById('offer-price-section'); if(_ofSec)_ofSec.style.display='none'; const _ofIn=document.getElementById('offer-price-input'); if(_ofIn)_ofIn.value=''; const _ofBt=document.getElementById('send-offer-btn'); if(_ofBt){_ofBt.textContent='Send Offer';_ofBt.disabled=false;} document.getElementById('booking-panel').classList.add('open'); setLocateButtonVisibility(false); }
 function closeBooking(){ document.getElementById('booking-panel').classList.remove('open'); setLocateButtonVisibility(true); }
 
 // ─── CALENDAR DATE PICKER ───────────────────────────────────────────────────
@@ -177,6 +178,7 @@ function formatMsgTime(ts){
   if(diff<172800000)return 'Yesterday';
   return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 }
+function msgPreview(body){ try{ const p=JSON.parse(body); if(p&&p.type==='offer')return'📋 Offer — $'+p.offered_price; }catch(e){} return body; }
 
 async function fetchAndOpenMessages(){
   if(!currentUser){openLoginModal();return;}
@@ -218,7 +220,7 @@ async function fetchAndOpenMessages(){
     const sp=senderMap[m.sender_id];
     const key=sp?sp.id:('anon_'+m.sender_id);
     if(!threadMap[key]||new Date(m.created_at)>new Date(threadMap[key].latestAt)){
-      threadMap[key]={profileId:sp?.id||null,latestAt:m.created_at,preview:m.body,unread:!m.read,name:sp?.name||'Unknown',initials:sp?.initials||'?',tag:sp?.primary_tag||'snowboard'};
+      threadMap[key]={profileId:sp?.id||null,latestAt:m.created_at,preview:msgPreview(m.body),unread:!m.read,name:sp?.name||'Unknown',initials:sp?.initials||'?',tag:sp?.primary_tag||'snowboard'};
     } else if(!m.read){ threadMap[key].unread=true; }
   }
 
@@ -229,7 +231,7 @@ async function fetchAndOpenMessages(){
     // Don't overwrite a received-message thread (prefer showing received)
     if(threadMap[rp.id])continue;
     if(!threadMap[key]||new Date(m.created_at)>new Date(threadMap[key].latestAt)){
-      threadMap[key]={profileId:rp.id,latestAt:m.created_at,preview:m.body,unread:false,name:rp.name,initials:rp.initials,tag:rp.primary_tag};
+      threadMap[key]={profileId:rp.id,latestAt:m.created_at,preview:msgPreview(m.body),unread:false,name:rp.name,initials:rp.initials,tag:rp.primary_tag};
     }
   }
 
@@ -310,19 +312,79 @@ async function loadChatMessages(creatorProfileId, creatorUserId){
 
 function renderChatBubbles(msgs){
   const bubbles=document.getElementById('chat-bubbles');
-  if(!msgs.length){
-    bubbles.innerHTML='<div style="padding:40px 20px;color:#6b7280;text-align:center;font-size:.85rem;">No messages yet. Say hello! 👋</div>';
-    return;
-  }
+  if(!msgs.length){ bubbles.innerHTML='<div style="padding:40px 20px;color:#6b7280;text-align:center;font-size:.85rem;">No messages yet. Say hello! 👋</div>'; return; }
   bubbles.innerHTML=msgs.map(m=>{
     const out=m.sender_id===currentUser?.id;
-    if(m.is_rate_proposal){
-      return `<div class="bubble-wrap ${out?'out':''}"><div class="bubble ${out?'out':'in'}"><div style="font-size:.7rem;font-weight:700;opacity:.75;margin-bottom:4px;">💰 Offer</div><div style="font-size:1.1rem;font-weight:800;">$${m.proposed_rate}</div><div style="font-size:.78rem;opacity:.8;margin-top:3px;">${escapeHtml(m.body)}</div></div></div>`;
-    }
+    let offerData=null; try{ const p=JSON.parse(m.body); if(p&&p.type==='offer')offerData=p; }catch(e){}
+    if(offerData) return renderOfferCard(m,offerData);
+    if(m.is_rate_proposal){ return `<div class="bubble-wrap ${out?'out':''}"><div class="bubble ${out?'out':'in'}"><div style="font-size:.7rem;font-weight:700;opacity:.75;margin-bottom:4px;">💰 Offer</div><div style="font-size:1.1rem;font-weight:800;">$${m.proposed_rate}</div><div style="font-size:.78rem;opacity:.8;margin-top:3px;">${escapeHtml(m.body)}</div></div></div>`; }
     return `<div class="bubble-wrap ${out?'out':''}"><div class="bubble ${out?'out':'in'}">${escapeHtml(m.body)}</div></div>`;
   }).join('');
   bubbles.scrollTop=bubbles.scrollHeight;
 }
+function renderOfferCard(m,offerData){
+  const isCreator=userProfile&&userProfile.id===offerData.creator_profile_id;
+  const isClient=!isCreator;
+  const status=offerData.status;
+  const bookingId=offerData.booking_id;
+  const msgId=m.id;
+  const delivList=(offerData.deliverables||[]).join(', ')||'—';
+  const durLabel=offerData.duration||'—';
+  let statusHtml='', actionsHtml='';
+  if(status==='offer_pending'){
+    if(isCreator){ actionsHtml=`<div class="offer-actions"><button class="offer-btn offer-accept" onclick="acceptOffer('${bookingId}','${msgId}')">Accept</button><button class="offer-btn offer-counter" onclick="startCounter('${msgId}')">Counter</button><button class="offer-btn offer-decline" onclick="declineOffer('${bookingId}','${msgId}')">Decline</button></div><div id="counter-form-${msgId}" style="display:none;margin-top:10px;"><div style="display:flex;gap:8px;align-items:center;background:#1f2937;border:1px solid #374151;border-radius:9px;padding:8px 10px;"><span style="color:#9ca3af;">$</span><input type="number" id="counter-input-${msgId}" placeholder="Your counter" min="1" style="background:none;border:none;color:#f9fafb;font-size:.85rem;outline:none;flex:1;font-family:inherit;" /><button class="offer-btn offer-accept" style="flex:0 0 auto;padding:6px 12px;" onclick="submitCounter('${bookingId}','${msgId}')">Send</button></div></div>`; }
+    else{ statusHtml=`<div class="offer-status-pending">Awaiting creator response…</div>`; }
+  } else if(status==='countered'){
+    const cp=offerData.counter_price;
+    statusHtml=`<div class="offer-status-counter">Creator countered: $${cp}</div>`;
+    if(isClient){ actionsHtml=`<div class="offer-actions"><button class="offer-btn offer-accept" onclick="acceptOffer('${bookingId}','${msgId}')">Accept $${cp}</button><button class="offer-btn offer-decline" onclick="declineOffer('${bookingId}','${msgId}')">Decline</button></div>`; }
+  } else if(status==='accepted'){
+    const price=offerData.counter_price||offerData.offered_price;
+    statusHtml=`<div class="offer-status-accepted">✓ Booking Confirmed at $${price}</div>`;
+  } else if(status==='declined'){
+    statusHtml=`<div class="offer-status-declined">✗ Offer Declined</div>`;
+  }
+  return `<div class="bubble-wrap"><div class="offer-card"><div class="offer-card-header">📋 Offer Proposal</div><div class="offer-card-row"><span class="offer-label">Type</span><span>${escapeHtml(offerData.shoot_type||'—')}</span></div><div class="offer-card-row"><span class="offer-label">Date</span><span>${escapeHtml(offerData.date||'—')}</span></div><div class="offer-card-row"><span class="offer-label">Duration</span><span>${escapeHtml(durLabel)}</span></div>${delivList!=='—'?`<div class="offer-card-row"><span class="offer-label">Deliverables</span><span>${escapeHtml(delivList)}</span></div>`:''}<div class="offer-card-price">$${offerData.offered_price}</div>${statusHtml}${actionsHtml}</div></div>`;
+}
+async function acceptOffer(bookingId,msgId){
+  const{data:msg}=await supabase.from('messages').select('body').eq('id',msgId).single();
+  if(!msg)return;
+  let offerData; try{offerData=JSON.parse(msg.body);}catch(e){return;}
+  offerData.status='accepted';
+  await supabase.from('bookings').update({status:'accepted'}).eq('id',bookingId).then(()=>{},()=>{});
+  await supabase.from('messages').update({body:JSON.stringify(offerData)}).eq('id',msgId).then(()=>{},()=>{});
+  const creator=window._activeChatCreator;
+  if(currentUser&&creator){await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:creator.id,body:'Booking confirmed! 🎉',is_rate_proposal:false,read:false}]).then(()=>{},()=>{});}
+  if(creator)await loadChatMessages(creator.id,creator.userId);
+}
+function startCounter(msgId){
+  const form=document.getElementById('counter-form-'+msgId);
+  if(form)form.style.display=form.style.display==='none'?'':'none';
+}
+async function submitCounter(bookingId,msgId){
+  const input=document.getElementById('counter-input-'+msgId);
+  const cp=parseFloat(input?.value);
+  if(!cp||cp<=0){showToast('Enter a valid counter price','#ef4444');return;}
+  const{data:msg}=await supabase.from('messages').select('body').eq('id',msgId).single();
+  if(!msg)return;
+  let offerData; try{offerData=JSON.parse(msg.body);}catch(e){return;}
+  offerData.status='countered'; offerData.counter_price=cp;
+  await supabase.from('bookings').update({status:'countered',counter_price:cp}).eq('id',bookingId).then(()=>{},()=>{});
+  await supabase.from('messages').update({body:JSON.stringify(offerData)}).eq('id',msgId).then(()=>{},()=>{});
+  const creator=window._activeChatCreator;
+  if(creator)await loadChatMessages(creator.id,creator.userId);
+}
+async function declineOffer(bookingId,msgId){
+  const{data:msg}=await supabase.from('messages').select('body').eq('id',msgId).single();
+  if(!msg)return;
+  let offerData; try{offerData=JSON.parse(msg.body);}catch(e){return;}
+  offerData.status='declined';
+  await supabase.from('bookings').update({status:'declined'}).eq('id',bookingId).then(()=>{},()=>{});
+  await supabase.from('messages').update({body:JSON.stringify(offerData)}).eq('id',msgId).then(()=>{},()=>{});
+  const creator=window._activeChatCreator;
+  if(creator)await loadChatMessages(creator.id,creator.userId);
+}
+window.acceptOffer=acceptOffer; window.startCounter=startCounter; window.submitCounter=submitCounter; window.declineOffer=declineOffer;
 
 async function sendChatMessage(){
   if(!currentUser)return;
@@ -535,6 +597,38 @@ document.getElementById('confirm-pay-btn').addEventListener('click',async()=>{
     if(currentUser){await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:activeCreator.id,body:`💳 Paid booking for ${shootDate||'TBD'} — ${notes||'No notes'}`,is_rate_proposal:false,read:false}]);}
     btn.disabled=false; closeBooking(); showToast('Booking confirmed! 🎉','#16a34a');
   }
+});
+document.getElementById('send-offer-btn').addEventListener('click',async()=>{
+  if(!currentUser){openLoginModal();return;}
+  if(!_offerSectionOpen){
+    _offerSectionOpen=true;
+    document.getElementById('offer-price-section').style.display='';
+    document.getElementById('offer-price-input').focus();
+    const ref=document.getElementById('offer-price-ref');
+    if(activeCreator?.showRates&&(activeCreator.rates?.halfDay||activeCreator.rates?.fullDay)){ ref.textContent=`Creator's listed rate:${activeCreator.rates.halfDay?' $'+activeCreator.rates.halfDay+' half day':''}${activeCreator.rates.fullDay?' · $'+activeCreator.rates.fullDay+' full day':''}`.trim(); }else{ ref.textContent=''; }
+    document.getElementById('send-offer-btn').textContent='Submit Offer';
+    return;
+  }
+  const offerPrice=parseFloat(document.getElementById('offer-price-input').value);
+  if(!offerPrice||offerPrice<=0){showToast('Enter a valid offer amount','#ef4444');return;}
+  const btn=document.getElementById('send-offer-btn');
+  btn.textContent='Sending…'; btn.disabled=true;
+  const shootDateStart=document.getElementById('booking_date_start').value;
+  const shootDateEnd=document.getElementById('booking_date_end').value;
+  const shootDate=shootDateStart&&shootDateEnd&&shootDateStart!==shootDateEnd?`${shootDateStart} to ${shootDateEnd}`:shootDateStart;
+  const notes=document.getElementById('booking-notes').value;
+  const duration=_calIsRange?'multi':(document.querySelector('.dur-btn[style*="818cf8"]')?.dataset?.type||'half');
+  const shootType=document.getElementById('booking-type').value;
+  const deliverables=[...document.querySelectorAll('.deliverable-check:checked')].map(cb=>cb.value);
+  const durLabel=duration==='half'?'Half Day':duration==='full'?'Full Day':'Multi-day';
+  const{data:booking,error}=await supabase.from('bookings').insert([{client_user_id:currentUser?.id||null,creator_profile_id:activeCreator.id,shoot_type:shootType,shoot_date:shootDate||null,duration,notes,deliverables:deliverables.join(', ')||null,status:'offer_pending',offered_price:offerPrice,counter_price:null}]).select().single();
+  if(error){showToast('Failed to send offer','#ef4444');btn.textContent='Submit Offer';btn.disabled=false;return;}
+  const offerData={type:'offer',booking_id:booking.id,creator_profile_id:activeCreator.id,shoot_type:shootType,date:shootDate||'TBD',duration:durLabel,deliverables,offered_price:offerPrice,status:'offer_pending'};
+  await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:activeCreator.id,body:JSON.stringify(offerData),is_rate_proposal:false,read:false}]).then(()=>{},()=>{});
+  btn.textContent='Send Offer'; btn.disabled=false; _offerSectionOpen=false;
+  document.getElementById('offer-price-section').style.display='none';
+  document.getElementById('offer-price-input').value='';
+  closeBooking(); showToast(`Offer sent to ${activeCreator.name}! ✓`);
 });
 document.getElementById('msg-btn').addEventListener('click',()=>{ if(!currentUser){openLoginModal();return;} fetchAndOpenMessages(); });
 document.getElementById('messages-back').addEventListener('click',closeMessages);

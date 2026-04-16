@@ -398,15 +398,34 @@
     #price-label  { font-size: .85rem; color: #9ca3af; }
     #price-amount { font-size: 1.05rem; font-weight: 800; }
 
-    #send-booking-btn {
-      width: calc(100% - 36px); margin: 0 18px;
+    .booking-action-row {
+      display: flex; gap: 10px; padding: 0 18px;
       margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-      padding: 13px; border: none; border-radius: 12px;
-      background: #818cf8; color: #fff; font-size: .92rem; font-weight: 700;
-      cursor: pointer; transition: opacity .15s; flex-shrink: 0;
+      flex-shrink: 0;
     }
-    #send-booking-btn:hover    { opacity: .88; }
-    #send-booking-btn:disabled { opacity: .45; cursor: not-allowed; }
+    #send-booking-btn, #send-offer-btn {
+      flex: 1; padding: 13px 6px; border-radius: 12px;
+      font-size: .85rem; font-weight: 700; cursor: pointer; transition: opacity .15s;
+    }
+    #send-booking-btn { background: #818cf8; color: #fff; border: none; }
+    #send-offer-btn   { background: transparent; border: 1.5px solid #818cf8; color: #818cf8; }
+    #send-booking-btn:hover, #send-offer-btn:hover    { opacity: .88; }
+    #send-booking-btn:disabled, #send-offer-btn:disabled { opacity: .45; cursor: not-allowed; }
+    .offer-card { background: #1a1f2e; border: 1.5px solid #4f46e5; border-radius: 14px; padding: 14px 16px; min-width: 220px; max-width: 290px; font-size: .82rem; }
+    .offer-card-header { font-size: .68rem; font-weight: 700; color: #818cf8; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+    .offer-card-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; color: #d1d5db; }
+    .offer-label { color: #6b7280; font-weight: 600; flex-shrink: 0; }
+    .offer-card-price { font-size: 1.35rem; font-weight: 800; color: #f9fafb; margin: 10px 0 8px; }
+    .offer-status-pending { font-size: .76rem; color: #9ca3af; font-style: italic; }
+    .offer-status-counter { font-size: .82rem; font-weight: 700; color: #fbbf24; margin-bottom: 8px; }
+    .offer-status-accepted { font-size: .82rem; font-weight: 700; color: #4ade80; }
+    .offer-status-declined { font-size: .82rem; color: #9ca3af; }
+    .offer-actions { display: flex; gap: 6px; margin-top: 10px; }
+    .offer-btn { flex: 1; padding: 8px 4px; border-radius: 8px; font-size: .76rem; font-weight: 700; cursor: pointer; border: none; transition: opacity .12s; }
+    .offer-btn:hover { opacity: .85; }
+    .offer-accept { background: #16a34a; color: #fff; }
+    .offer-counter { background: #374151; color: #f9fafb; }
+    .offer-decline { background: transparent; color: #ef4444; border: 1px solid #ef4444!important; }
 
     /* ─── MESSAGES PANEL ──────────────────────────────── */
     #messages-list { padding-bottom: 24px; }
@@ -1073,7 +1092,18 @@
           <span id="price-amount">—</span>
         </div>
       </div>
-      <button id="send-booking-btn">Send Booking Request</button>
+      <div id="offer-price-section" style="display:none;padding:0 18px 12px;">
+        <div style="font-size:.68rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Propose a Rate</div>
+        <div style="display:flex;align-items:center;background:#1f2937;border:1px solid #374151;border-radius:10px;padding:10px 13px;gap:8px;">
+          <span style="color:#9ca3af;font-weight:700;">$</span>
+          <input type="number" id="offer-price-input" placeholder="Your offer amount" min="1" style="background:none;border:none;color:#f9fafb;font-size:.875rem;outline:none;flex:1;font-family:inherit;" />
+        </div>
+        <div id="offer-price-ref" style="font-size:.73rem;color:#6b7280;margin-top:6px;"></div>
+      </div>
+      <div class="booking-action-row">
+        <button id="send-booking-btn">Send Request</button>
+        <button id="send-offer-btn">Send Offer</button>
+      </div>
     </div>
 
     <!-- Step 2: payment (hidden until creator has Stripe + known price) -->
@@ -1426,7 +1456,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=77"></script>
+<script type="module" src="src/app.js?v=78"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
