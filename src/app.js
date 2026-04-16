@@ -385,11 +385,23 @@ function renderMpSpecialtiesGrid(){
   const counter=document.getElementById('mp-spec-counter');
   if(!grid||!userProfile)return;
   const active=userProfile.tags||[];
-  grid.innerHTML=Object.keys(TAG_META).map(tag=>{
-    const m=TAG_META[tag];
-    const on=active.includes(tag);
-    return`<button onclick="toggleSpecialty('${tag}')" style="padding:7px 14px;border-radius:20px;border:1px solid ${on?m.color:'#374151'};background:${on?m.color+'22':'#1f2937'};color:${on?m.color:'#6b7280'};font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;">${m.label}</button>`;
-  }).join('');
+  const groups=[
+    {label:'Outdoor',   tags:['snowboard','ski','drone','model','off-road']},
+    {label:'Camera',    tags:['photo','video','film-photo','broll','dp','1ac','2ac']},
+    {label:'Production',tags:['director','ad','2ad','producer','pa']},
+    {label:'Post',      tags:['editor','colorist','motion','sound']},
+    {label:'Other',     tags:['gaffer','stylist']},
+  ];
+  let html='';
+  groups.forEach(g=>{
+    html+=`<div style="width:100%;font-size:.65rem;font-weight:700;color:#4b5563;letter-spacing:.08em;margin:${g===groups[0]?'0':'12px'} 0 6px;text-transform:uppercase;">${g.label}</div>`;
+    html+=g.tags.map(tag=>{
+      const m=TAG_META[tag]; if(!m)return'';
+      const on=active.includes(tag);
+      return`<button onclick="toggleSpecialty('${tag}')" style="padding:7px 14px;border-radius:20px;border:1px solid ${on?m.color:'#374151'};background:${on?m.color+'22':'#1f2937'};color:${on?m.color:'#6b7280'};font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;">${m.label}</button>`;
+    }).join('');
+  });
+  grid.innerHTML=html;
   if(counter)counter.textContent=`${active.length}/5 selected`;
 }
 function toggleSpecialty(tag){

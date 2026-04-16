@@ -827,12 +827,16 @@
 <!-- ══ FILTER BAR ══════════════════════════════════════ -->
 <div id="filter-bar">
   <div class="filter-chip active" data-filter="all">All</div>
+  <div class="filter-chip" data-filter="photo">Photographer</div>
+  <div class="filter-chip" data-filter="video">Videographer</div>
+  <div class="filter-chip" data-filter="drone">Drone</div>
+  <div class="filter-chip" data-filter="film-photo">Film Photo</div>
+  <div class="filter-chip" data-filter="dp">DP</div>
+  <div class="filter-chip" data-filter="director">Director</div>
+  <div class="filter-chip" data-filter="editor">Editor</div>
+  <div class="filter-chip" data-filter="model">Model</div>
   <div class="filter-chip" data-filter="snowboard">Snowboard</div>
   <div class="filter-chip" data-filter="ski">Ski</div>
-  <div class="filter-chip" data-filter="photo">Photo</div>
-  <div class="filter-chip" data-filter="video">Video</div>
-  <div class="filter-chip" data-filter="drone">Drone</div>
-  <div class="filter-chip" data-filter="model">Model</div>
   <div class="filter-chip" data-filter="off-road">Off-Road</div>
 </div>
 
@@ -1154,13 +1158,34 @@
     <div class="fgroup">
       <label>Specialties *</label>
       <div class="spec-grid">
+        <div style="width:100%;font-size:.65rem;font-weight:700;color:#4b5563;letter-spacing:.08em;margin:2px 0 4px;">OUTDOOR</div>
         <label class="spec-chip"><input type="checkbox" class="spec-check" value="snowboard" /> 🏂 Snowboard</label>
         <label class="spec-chip"><input type="checkbox" class="spec-check" value="ski" /> ⛷️ Ski</label>
-        <label class="spec-chip"><input type="checkbox" class="spec-check" value="photo" /> 📷 Photo</label>
-        <label class="spec-chip"><input type="checkbox" class="spec-check" value="video" /> 🎬 Video</label>
         <label class="spec-chip"><input type="checkbox" class="spec-check" value="drone" /> 🚁 Drone</label>
         <label class="spec-chip"><input type="checkbox" class="spec-check" value="model" /> ✨ Model</label>
         <label class="spec-chip"><input type="checkbox" class="spec-check" value="off-road" /> 🔥 Off-Road</label>
+        <div style="width:100%;font-size:.65rem;font-weight:700;color:#4b5563;letter-spacing:.08em;margin:10px 0 4px;">CAMERA</div>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="photo" /> 📷 Photographer</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="video" /> 🎬 Videographer</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="film-photo" /> 🎞 Film Photo</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="broll" /> 📹 B-Roll Cam</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="dp" /> 🎥 DP</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="1ac" /> 🎦 1st AC</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="2ac" /> 🎦 2nd AC</label>
+        <div style="width:100%;font-size:.65rem;font-weight:700;color:#4b5563;letter-spacing:.08em;margin:10px 0 4px;">PRODUCTION</div>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="director" /> 🎬 Director</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="ad" /> 📋 AD</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="2ad" /> 📋 2nd AD</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="producer" /> 🎙 Producer</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="pa" /> 🏃 PA</label>
+        <div style="width:100%;font-size:.65rem;font-weight:700;color:#4b5563;letter-spacing:.08em;margin:10px 0 4px;">POST</div>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="editor" /> ✂️ Editor</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="colorist" /> 🎨 Colorist</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="motion" /> 💫 Motion</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="sound" /> 🎵 Sound</label>
+        <div style="width:100%;font-size:.65rem;font-weight:700;color:#4b5563;letter-spacing:.08em;margin:10px 0 4px;">OTHER</div>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="gaffer" /> 💡 Gaffer</label>
+        <label class="spec-chip"><input type="checkbox" class="spec-check" value="stylist" /> 👗 Stylist</label>
       </div>
     </div>
     <div class="fgroup">
@@ -1249,7 +1274,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=59"></script>
+<script type="module" src="src/app.js?v=60"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>

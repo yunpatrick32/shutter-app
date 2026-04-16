@@ -1,11 +1,36 @@
 export const TAG_META = {
-  snowboard: { color: '#818cf8', bg: '#1e1b4b', label: '🏂 Snowboard' },
-  ski:       { color: '#38bdf8', bg: '#0c2a3d', label: '⛷️ Ski' },
-  photo:     { color: '#fbbf24', bg: '#2d1f00', label: '📷 Photo' },
-  video:     { color: '#f87171', bg: '#2d0a0a', label: '🎬 Video' },
-  drone:     { color: '#a78bfa', bg: '#1d0f3d', label: '🚁 Drone' },
-  model:     { color: '#f472b6', bg: '#2d0a1e', label: '✨ Model' },
-  'off-road':{ color: '#34d399', bg: '#002d1c', label: '🔥 Off-Road' },
+  // ─── Outdoor Sports ──────────────────────────────────────────────────────────
+  snowboard:    { color: '#818cf8', bg: '#1e1b4b', label: '🏂 Snowboard',    showInFilter: true,  group: 'Outdoor'    },
+  ski:          { color: '#38bdf8', bg: '#0c2a3d', label: '⛷️ Ski',           showInFilter: true,  group: 'Outdoor'    },
+  drone:        { color: '#a78bfa', bg: '#1d0f3d', label: '🚁 Drone',         showInFilter: true,  group: 'Outdoor'    },
+  model:        { color: '#f472b6', bg: '#2d0a1e', label: '✨ Model',          showInFilter: true,  group: 'Outdoor'    },
+  'off-road':   { color: '#34d399', bg: '#002d1c', label: '🔥 Off-Road',      showInFilter: true,  group: 'Outdoor'    },
+
+  // ─── Camera & Capture ────────────────────────────────────────────────────────
+  photo:        { color: '#fbbf24', bg: '#2d1f00', label: '📷 Photographer',  showInFilter: true,  group: 'Camera'     },
+  video:        { color: '#f87171', bg: '#2d0a0a', label: '🎬 Videographer',  showInFilter: true,  group: 'Camera'     },
+  'film-photo': { color: '#93c5fd', bg: '#0d1f3c', label: '🎞 Film Photo',    showInFilter: true,  group: 'Camera'     },
+  broll:        { color: '#60a5fa', bg: '#0a1a30', label: '📹 B-Roll Cam',    showInFilter: false, group: 'Camera'     },
+  dp:           { color: '#3b82f6', bg: '#0d1a3a', label: '🎥 DP',            showInFilter: true,  group: 'Camera'     },
+  '1ac':        { color: '#2563eb', bg: '#0d1730', label: '🎦 1st AC',        showInFilter: false, group: 'Camera'     },
+  '2ac':        { color: '#1d4ed8', bg: '#0a1428', label: '🎦 2nd AC',        showInFilter: false, group: 'Camera'     },
+
+  // ─── Direction & Production ──────────────────────────────────────────────────
+  director:     { color: '#fb923c', bg: '#2d1200', label: '🎬 Director',      showInFilter: true,  group: 'Production' },
+  ad:           { color: '#f59e0b', bg: '#271500', label: '📋 AD',            showInFilter: false, group: 'Production' },
+  '2ad':        { color: '#d97706', bg: '#221200', label: '📋 2nd AD',        showInFilter: false, group: 'Production' },
+  producer:     { color: '#fcd34d', bg: '#2a1800', label: '🎙 Producer',      showInFilter: false, group: 'Production' },
+  pa:           { color: '#fde68a', bg: '#261600', label: '🏃 PA',            showInFilter: false, group: 'Production' },
+
+  // ─── Post Production ─────────────────────────────────────────────────────────
+  editor:       { color: '#4ade80', bg: '#002d10', label: '✂️ Editor',         showInFilter: true,  group: 'Post'       },
+  colorist:     { color: '#22c55e', bg: '#002510', label: '🎨 Colorist',      showInFilter: false, group: 'Post'       },
+  motion:       { color: '#86efac', bg: '#001e0a', label: '💫 Motion',        showInFilter: false, group: 'Post'       },
+  sound:        { color: '#16a34a', bg: '#001a08', label: '🎵 Sound',         showInFilter: false, group: 'Post'       },
+
+  // ─── Other ───────────────────────────────────────────────────────────────────
+  gaffer:       { color: '#94a3b8', bg: '#0f172a', label: '💡 Gaffer',        showInFilter: false, group: 'Other'      },
+  stylist:      { color: '#cbd5e1', bg: '#1e293b', label: '👗 Stylist',       showInFilter: false, group: 'Other'      },
 };
 
 export const creators = [
@@ -32,7 +57,6 @@ export const creators = [
     rates: { halfDay: 450, fullDay: 800 },
     showRates: false,
     portfolioUrl: 'https://www.instagram.com/jakemorrisonfilms',
-    // schedule[0] = today (Mar 14), schedule[6] = Mar 20
     schedule: [true, true, false, true, true, false, true],
   },
   {
