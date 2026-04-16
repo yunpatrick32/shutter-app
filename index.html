@@ -1071,10 +1071,13 @@
         <div class="sec-label" style="margin-bottom:8px;">Portfolio Photos <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.72rem;color:#6b7280">(up to 6)</span></div>
         <div class="mp-portfolio-grid" id="mp-portfolio-grid"></div>
       </div>
-      <!-- tags -->
+      <!-- specialties -->
       <div>
-        <div class="sec-label" style="margin-bottom:8px;">Tags</div>
-        <div id="mp-tags" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+          <div class="sec-label">Specialties</div>
+          <span id="mp-spec-counter" style="font-size:.72rem;color:#6b7280;">0/5 selected</span>
+        </div>
+        <div id="mp-specialties-grid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       </div>
       <!-- live toggle -->
       <div>
@@ -1246,7 +1249,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=58"></script>
+<script type="module" src="src/app.js?v=59"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
