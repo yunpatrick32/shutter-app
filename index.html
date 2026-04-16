@@ -1193,6 +1193,10 @@
         <label class="spec-chip"><input type="checkbox" class="spec-check" value="stylist" /> 👗 Stylist</label>
       </div>
     </div>
+    <div class="fgroup" id="jn-primary-wrap" style="display:none;">
+      <label>Primary specialty <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:#6b7280;">— shown on your map pin 👑</span></label>
+      <select class="finput" id="jn-primary-tag" style="cursor:pointer;background:#111827;color:#f9fafb;border:1px solid #374151;border-radius:10px;padding:10px 14px;font-size:.9rem;width:100%;"></select>
+    </div>
     <div class="fgroup">
       <label>Bio</label>
       <textarea class="ftextarea" id="jn-bio" placeholder="2-3 sentences about your work…"></textarea>
@@ -1233,6 +1237,10 @@
     <div class="fgroup">
       <label>Portfolio URL <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:#6b7280">(optional)</span></label>
       <input type="url" class="finput" id="jn-portfolio-url" placeholder="https://yoursite.com" />
+    </div>
+    <div class="fgroup">
+      <label>Portfolio photos <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:#6b7280;">(optional, up to 6)</span></label>
+      <div id="jn-portfolio-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;"></div>
     </div>
   </div>
   <div style="display:flex;align-items:flex-start;gap:12px;padding:16px 0 8px;">
@@ -1279,7 +1287,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=69"></script>
+<script type="module" src="src/app.js?v=70"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
