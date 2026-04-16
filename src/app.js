@@ -6,13 +6,13 @@ let creators = [];
 const SHUTTER_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScf520qHkbI_0RynCAsm3aEb_ab3Sr6B4aQ7-ESJtARPdWgmw/viewform';
 const MAPBOX_TOKEN = 'pk.eyJ1IjoieXVucGF0cmljazMyIiwiYSI6ImNtbXF6ejN3NDE3Z2kyc3E0a3I1OWJyazYifQ.s6YwV4WG5fbB0ULZjXPncw';
 const LAKE_TAHOE = [-120.0324, 39.0968];
-let activeFilter = 'all', selectedId = null, markerMap = {}, activeCreator = null;
+let activeFilters = new Set(), selectedId = null, markerMap = {}, activeCreator = null;
 let currentUser = null, userProfile = null;
 const myProfile = { name:'Patrick Yun', initials:'PY', location:'Truckee, CA', primaryTag:'snowboard', tags:['snowboard','video','off-road'], bio:'Snowboard filmer and content creator based in Truckee. Off-road capable — no location too remote.', gear:['Sony FX3','DJI RS3 gimbal','Premiere Pro','Tacoma TRD — off-road'], rates:{halfDay:400,fullDay:700}, showRates:false, portfolioUrl:'', stats:{views:12,inquiries:3,earnings:1100} };
 mapboxgl.accessToken = MAPBOX_TOKEN;
 const map = new mapboxgl.Map({ container:'map', style:'mapbox://styles/mapbox/dark-v11', center:LAKE_TAHOE, zoom:10.5, pitch:50, bearing:-10, antialias:true });
 map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
-async function fetchAndRender(){ if(fetchAndRender._running)return; fetchAndRender._running=true; const {data,error}=await supabase.from('profiles').select('*').eq('is_live',true); fetchAndRender._running=false; if(error){console.error('Supabase error:',error);return;} creators=(data||[]).map(toCreator); const now=new Date(); creators.forEach(c=>{if(c.availableNow&&c.availableUntil&&new Date(c.availableUntil)<=now)c.availableNow=false;}); if(userProfile){const me=creators.find(c=>c.id===userProfile.id);if(me&&!me.availableNow&&userProfile.availableNow){supabase.from('profiles').update({available_now:false,available_until:null}).eq('id',userProfile.id).catch(()=>{});userProfile.availableNow=false;userProfile.availableUntil=null;}} const filtered=activeFilter==='all'?creators:creators.filter(c=>c.tags.includes(activeFilter)); renderMarkers(filtered); }
+async function fetchAndRender(){ if(fetchAndRender._running)return; fetchAndRender._running=true; const {data,error}=await supabase.from('profiles').select('*').eq('is_live',true); fetchAndRender._running=false; if(error){console.error('Supabase error:',error);return;} creators=(data||[]).map(toCreator); const now=new Date(); creators.forEach(c=>{if(c.availableNow&&c.availableUntil&&new Date(c.availableUntil)<=now)c.availableNow=false;}); if(userProfile){const me=creators.find(c=>c.id===userProfile.id);if(me&&!me.availableNow&&userProfile.availableNow){supabase.from('profiles').update({available_now:false,available_until:null}).eq('id',userProfile.id).catch(()=>{});userProfile.availableNow=false;userProfile.availableUntil=null;}} const filtered=activeFilters.size===0?creators:creators.filter(c=>c.tags.some(t=>activeFilters.has(t))); renderMarkers(filtered); }
 function setupTerrain(){ if(map.getSource('mapbox-dem'))return; map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14}); map.setTerrain({source:'mapbox-dem',exaggeration:1.4}); map.setFog({color:'rgb(180,205,230)','high-color':'rgb(30,80,200)','horizon-blend':0.015,'space-color':'rgb(8,8,20)','star-intensity':0.7}); }
 map.on('load',()=>{ setupTerrain(); fetchAndRender(); });
 map.on('style.load',()=>{ setupTerrain(); if(!creators.length)fetchAndRender(); });
@@ -260,7 +260,22 @@ function updateLiveStatus(){ const s=document.getElementById('live-status'); con
 function updateJnRatesToggle(){ const on=document.getElementById('jn-show-rates')?.checked; const slider=document.getElementById('jn-rates-slider'); const knob=document.getElementById('jn-rates-knob'); if(slider)slider.style.background=on?'#818cf8':'#374151'; if(knob)knob.style.transform=on?'translateX(18px)':'translateX(0)'; }
 function updateRatesVisStatus(){ const s=document.getElementById('rates-vis-status'); const on=document.getElementById('rates-visible-toggle').checked; if(s){s.textContent=on?'Visible on profile':'Hidden — rates on request';s.style.color=on?'#34d399':'#6b7280';} }
 function showToast(msg,color){ const t=document.getElementById('toast'); t.textContent=msg; t.style.background=color||'#16a34a'; t.classList.add('show'); clearTimeout(window._toastTimer); window._toastTimer=setTimeout(()=>t.classList.remove('show'),3000); }
-function applyFilter(filter){ activeFilter=filter; const filtered=filter==='all'?creators:creators.filter(c=>c.tags.includes(filter)); renderMarkers(filtered); if(selectedId&&!filtered.find(c=>c.id===selectedId))closeCard(); document.querySelectorAll('.filter-chip').forEach(chip=>chip.classList.toggle('active',chip.dataset.filter===filter)); }
+function applyFilter(filter){
+  if(filter==='all'){
+    activeFilters.clear();
+  }else{
+    if(activeFilters.has(filter)){activeFilters.delete(filter);}else{activeFilters.add(filter);}
+    // If nothing selected, fall back to all
+    if(activeFilters.size===0){activeFilters.clear();}
+  }
+  const filtered=activeFilters.size===0?creators:creators.filter(c=>c.tags.some(t=>activeFilters.has(t)));
+  renderMarkers(filtered);
+  if(selectedId&&!filtered.find(c=>c.id===selectedId))closeCard();
+  document.querySelectorAll('.filter-chip').forEach(chip=>{
+    const isAll=chip.dataset.filter==='all';
+    chip.classList.toggle('active',isAll?activeFilters.size===0:activeFilters.has(chip.dataset.filter));
+  });
+}
 document.querySelectorAll('.filter-chip').forEach(chip=>chip.addEventListener('click',()=>applyFilter(chip.dataset.filter)));
 function openJoin(){ closeAllPanels(); document.querySelectorAll('#jn-name,#jn-location,#jn-bio,#jn-gear,#jn-portfolio-url,#jn-instagram').forEach(el=>el.value=''); const termsBox=document.getElementById('jn-terms'); if(termsBox)termsBox.checked=false; const jnImg=document.getElementById('jn-avatar-img'); if(jnImg){jnImg.src='';jnImg.style.display='none';} const jnHint=document.getElementById('jn-avatar-hint'); if(jnHint)jnHint.style.display='flex'; const jnInput=document.getElementById('jn-avatar-input'); if(jnInput)jnInput.value=''; document.querySelectorAll('.spec-check').forEach(cb=>cb.checked=false); document.getElementById('jn-half').value=''; document.getElementById('jn-full').value=''; const sr=document.getElementById('jn-show-rates'); if(sr){sr.checked=false;updateJnRatesToggle();} if(currentUser){ const meta=currentUser.user_metadata; const name=meta?.full_name||meta?.name||''; if(name)document.getElementById('jn-name').value=name; } document.getElementById('join-panel').classList.add('open'); document.getElementById('overlay').classList.add('active'); }
 function closeJoin(){ document.getElementById('join-panel').classList.remove('open'); document.getElementById('overlay').classList.remove('active'); }
