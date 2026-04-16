@@ -29,6 +29,10 @@
       inset: 0;
     }
 
+    /* ─── HIDE MAPBOX BRANDING ────────────────────────── */
+    .mapboxgl-ctrl-bottom-left { display: none !important; }
+    .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-attrib { display: none !important; }
+
     /* ─── HEADER ──────────────────────────────────────── */
     #header {
       position: absolute; top: 0; left: 0; right: 0; z-index: 10;
@@ -1274,7 +1278,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=64"></script>
+<script type="module" src="src/app.js?v=65"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
