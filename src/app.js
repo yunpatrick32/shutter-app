@@ -9,7 +9,7 @@ const LAKE_TAHOE = [-120.0324, 39.0968];
 let activeFilters = new Set(), selectedId = null, markerMap = {}, activeCreator = null;
 let _suppressMapClose = false;
 let currentUser = null, userProfile = null;
-const STRIPE_PUBLISHABLE_KEY = 'pk_live_YOUR_KEY_HERE'; // TODO: replace with your Stripe publishable key
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TMtgGBBgXNRGdD6p27f1h7xUkvxJfPXi1PdxLjFf98KBajVgoBexJGrpXdhIYRSWfgbnbLOBKdKQOI4o67o7Abv00Z1Pjel9f';
 const stripe = typeof Stripe !== 'undefined' ? Stripe(STRIPE_PUBLISHABLE_KEY) : null;
 let _stripeElements = null, _currentBookingData = null;
 let jnPortfolioFiles = [];
