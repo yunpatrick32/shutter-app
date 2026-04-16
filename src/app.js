@@ -413,13 +413,12 @@ function renderMpSpecialtiesGrid(){
     });
   });
   grid.innerHTML=html;
-  if(counter)counter.innerHTML=`${active.length}/5 &nbsp;·&nbsp; <span style="color:#4b5563;">tap active tag to set primary</span>`;
+  if(counter)counter.innerHTML=`${active.length} selected &nbsp;·&nbsp; <span style="color:#4b5563;">tap active tag to set primary</span>`;
 }
 function toggleSpecialty(tag){
   if(!userProfile)return;
   const tags=[...(userProfile.tags||[])];
   if(tags.includes(tag)){setPrimaryTag(tag);return;}
-  if(tags.length>=5){showToast('Max 5 specialties','#ef4444');return;}
   tags.push(tag);
   userProfile.tags=tags;
   if(!userProfile.primaryTag)userProfile.primaryTag=tags[0];
