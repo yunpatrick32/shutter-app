@@ -27,7 +27,7 @@ async function sendMagicLink(){ const email=document.getElementById('login-email
 
 function setLocateButtonVisibility(visible){
   const btn=document.getElementById('locate-btn');
-  if(btn)btn.style.display=visible?'':'none';
+  if(btn)btn.classList.toggle('hidden',!visible);
 }
 function checkLocateButton(){
   const anyOpen=['profile-card','join-panel','my-profile-panel','booking-panel','messages-panel','chat-panel']
