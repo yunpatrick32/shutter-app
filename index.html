@@ -288,13 +288,13 @@
     #booking-name     { font-size: .92rem; font-weight: 700; }
     #booking-location { font-size: .76rem; color: #9ca3af; margin-top: 1px; }
 
-    .bform { padding: 16px 18px; display: flex; flex-direction: column; gap: 15px; }
+    .bform { padding: 16px 18px; box-sizing: border-box; width: 100%; display: flex; flex-direction: column; gap: 15px; }
     .fgroup label {
       display: block; font-size: .68rem; font-weight: 700; color: #6b7280;
       text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px;
     }
     .finput, .fselect, .ftextarea {
-      width: 100%; background: #1f2937; border: 1px solid #374151;
+      width: 100%; box-sizing: border-box; background: #1f2937; border: 1px solid #374151;
       border-radius: 10px; color: #f9fafb;
       padding: 10px 13px; font-size: .875rem; outline: none;
       font-family: inherit;
@@ -311,6 +311,11 @@
       transition: all .15s;
     }
 
+    .del-category-label {
+      font-size: .65rem; font-weight: 700; letter-spacing: .08em;
+      color: #6b7280; text-transform: uppercase; margin-top: 10px; margin-bottom: 4px;
+    }
+    .del-category-label:first-of-type { margin-top: 0; }
     .deliverables { display: flex; flex-wrap: wrap; gap: 7px; }
     .dlabel {
       display: flex; align-items: center; gap: 6px;
@@ -318,6 +323,64 @@
       background: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 6px 10px;
     }
     .deliverable-check { accent-color: #818cf8; }
+
+    .cal-mode-toggle { display: flex; gap: 6px; margin-bottom: 8px; }
+    .cal-mode-btn {
+      flex: 1; padding: 8px 4px; border-radius: 9px;
+      font-size: .8rem; font-weight: 600; cursor: pointer;
+      background: #1f2937; border: 1px solid #374151; color: #9ca3af;
+      transition: all .15s;
+    }
+    .cal-mode-btn.active {
+      background: rgba(129,140,248,.12); border-color: #818cf8; color: #818cf8;
+    }
+    .cal-field {
+      cursor: pointer; color: #9ca3af; user-select: none;
+    }
+    .cal-field.has-value { color: #f9fafb; }
+    .cal-dropdown {
+      display: none; background: #1a1f2e; border: 1px solid #374151;
+      border-radius: 12px; padding: 12px; margin-top: 8px;
+      box-sizing: border-box; width: 100%; overflow: hidden;
+    }
+    .cal-dropdown.open { display: block; }
+    .cal-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .cal-nav-btn {
+      background: none; border: none; color: #d1d5db; font-size: 1.2rem;
+      cursor: pointer; padding: 4px 10px; border-radius: 6px;
+    }
+    .cal-nav-btn:hover { background: #374151; }
+    .cal-month-label { font-size: .85rem; font-weight: 700; color: #f9fafb; }
+    .cal-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+    }
+    .cal-dow {
+      text-align: center; font-size: .65rem; font-weight: 600;
+      color: #6b7280; padding: 4px 0;
+    }
+    .cal-day {
+      text-align: center; padding: 8px 0; border-radius: 8px;
+      font-size: .8rem; cursor: pointer; color: #d1d5db;
+      transition: background .12s, color .12s; border: none; background: none;
+    }
+    .cal-day:hover:not(.cal-day-disabled):not(.cal-day-empty) { background: #374151; }
+    .cal-day-disabled { color: #374151; pointer-events: none; }
+    .cal-day-empty { pointer-events: none; }
+    .cal-day-selected {
+      background: rgba(99,102,241,.8) !important; color: #fff !important;
+      font-weight: 700; border-radius: 50%;
+    }
+    .cal-day-in-range {
+      background: rgba(99,102,241,.25) !important; color: #c7d2fe !important;
+      border-radius: 4px;
+    }
+    .cal-day-range-preview {
+      background: rgba(99,102,241,.12) !important; color: #a5b4fc !important;
+      border-radius: 4px;
+    }
 
     .price-row {
       display: flex; justify-content: space-between; align-items: center;
@@ -920,15 +983,43 @@
         <div class="fgroup">
           <label>Shoot Type</label>
           <select class="fselect" id="booking-type">
-            <option value="snowboard">Snowboard</option>
-            <option value="ski">Ski</option>
-            <option value="photo">Photo</option>
-            <option value="video">Video</option>
-            <option value="drone">Drone</option>
-            <option value="model">Model</option>
+            <option value="" disabled selected>Select project type</option>
+            <option value="snow_sports">Snow Sports</option>
+            <option value="mountain_biking">Mountain Biking</option>
+            <option value="offroad_motorsport">Off-Road / Motorsport</option>
+            <option value="climbing_hiking">Rock Climbing / Hiking</option>
+            <option value="water_surfing">Water / Surfing</option>
+            <option value="commercial_brand">Commercial / Brand</option>
+            <option value="social_media">Social Media Content</option>
+            <option value="event_coverage">Event Coverage</option>
+            <option value="documentary">Documentary</option>
+            <option value="music_video">Music Video</option>
+            <option value="post_production">Post-Production Only</option>
+            <option value="other">Other</option>
           </select>
         </div>
         <div class="fgroup">
+          <label>Date</label>
+          <div class="cal-mode-toggle">
+            <button class="cal-mode-btn active" data-mode="single">Single Day</button>
+            <button class="cal-mode-btn" data-mode="range">Date Range</button>
+          </div>
+          <div class="cal-field finput" id="booking-date-field">Select a date</div>
+          <input type="hidden" id="booking_date_start" />
+          <input type="hidden" id="booking_date_end" />
+          <div class="cal-dropdown" id="cal-dropdown">
+            <div class="cal-nav">
+              <button class="cal-nav-btn" id="cal-prev">‹</button>
+              <span class="cal-month-label" id="cal-month-label"></span>
+              <button class="cal-nav-btn" id="cal-next">›</button>
+            </div>
+            <div class="cal-grid">
+              <span class="cal-dow">Sun</span><span class="cal-dow">Mon</span><span class="cal-dow">Tue</span><span class="cal-dow">Wed</span><span class="cal-dow">Thu</span><span class="cal-dow">Fri</span><span class="cal-dow">Sat</span>
+            </div>
+            <div class="cal-grid" id="cal-days"></div>
+          </div>
+        </div>
+        <div class="fgroup" id="duration-group">
           <label>Duration</label>
           <div class="dur-row">
             <button class="dur-btn" data-type="half">Half Day</button>
@@ -937,16 +1028,34 @@
           </div>
         </div>
         <div class="fgroup">
-          <label>Date</label>
-          <input type="date" class="finput" id="booking-date" />
-        </div>
-        <div class="fgroup">
           <label>Deliverables</label>
+          <div class="del-category-label">VIDEO</div>
           <div class="deliverables">
-            <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Highlight Reel</label>
-            <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Raw Footage</label>
-            <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Photos</label>
-            <label class="dlabel"><input type="checkbox" class="deliverable-check" /> Drone Shots</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Highlight Reel" /> Highlight Reel</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Full Edit" /> Full Edit</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Social Cuts (Vertical)" /> Social Cuts (Vertical)</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Raw Footage" /> Raw Footage</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="BTS" /> BTS</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Music Video Edit" /> Music Video Edit</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Documentary Cut" /> Documentary Cut</label>
+          </div>
+          <div class="del-category-label">PHOTO</div>
+          <div class="deliverables">
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Edited Gallery" /> Edited Gallery</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="RAW Files" /> RAW Files</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Film Scans" /> Film Scans</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Social Ready Crops" /> Social Ready Crops</label>
+          </div>
+          <div class="del-category-label">AERIAL</div>
+          <div class="deliverables">
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Drone Highlights" /> Drone Highlights</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Raw Aerial Footage" /> Raw Aerial Footage</label>
+          </div>
+          <div class="del-category-label">POST-PRODUCTION</div>
+          <div class="deliverables">
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Color Grade" /> Color Grade</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Sound Mix" /> Sound Mix</label>
+            <label class="dlabel"><input type="checkbox" class="deliverable-check" value="Subtitles / Captions" /> Subtitles / Captions</label>
           </div>
         </div>
         <div class="fgroup">
@@ -1311,7 +1420,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=72"></script>
+<script type="module" src="src/app.js?v=74"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
