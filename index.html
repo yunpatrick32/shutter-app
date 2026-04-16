@@ -338,10 +338,16 @@
       cursor: pointer; color: #9ca3af; user-select: none;
     }
     .cal-field.has-value { color: #f9fafb; }
+    .cal-multi-label {
+      display: inline-flex; align-items: center; gap: 7px; margin-top: 8px;
+      font-size: .8rem; color: #9ca3af; cursor: pointer; user-select: none;
+    }
+    .cal-multi-label input[type=checkbox] { accent-color: #818cf8; cursor: pointer; }
     .cal-dropdown {
       display: none; background: #1a1f2e; border: 1px solid #374151;
-      border-radius: 12px; padding: 12px; margin-top: 8px;
-      box-sizing: border-box; width: 100%; overflow: hidden;
+      border-radius: 12px; padding: 12px; margin-top: 6px;
+      position: absolute; left: 0; right: 0; width: auto;
+      box-sizing: border-box; overflow: hidden; z-index: 100;
     }
     .cal-dropdown.open { display: block; }
     .cal-nav {
@@ -380,6 +386,9 @@
     .cal-day-range-preview {
       background: rgba(99,102,241,.12) !important; color: #a5b4fc !important;
       border-radius: 4px;
+    }
+    .cal-day-today {
+      box-shadow: inset 0 0 0 1px #6366f1; color: #a5b4fc;
     }
 
     .price-row {
@@ -964,7 +973,7 @@
 </div>
 
 <!-- ══ BOOKING PANEL (right slide) ══════════════════════ -->
-<div class="side-panel" id="booking-panel" style="max-height:90vh;overflow-y:auto">
+<div class="side-panel" id="booking-panel" style="max-height:90vh;overflow-y:auto;overflow-x:hidden;">
   <div class="panel-hdr">
     <button class="panel-back" id="booking-back">‹</button>
     <span class="panel-title">Book Creator</span>
@@ -998,13 +1007,10 @@
             <option value="other">Other</option>
           </select>
         </div>
-        <div class="fgroup">
+        <div class="fgroup" style="position:relative;">
           <label>Date</label>
-          <div class="cal-mode-toggle">
-            <button class="cal-mode-btn active" data-mode="single">Single Day</button>
-            <button class="cal-mode-btn" data-mode="range">Date Range</button>
-          </div>
           <div class="cal-field finput" id="booking-date-field">Select a date</div>
+          <label class="cal-multi-label"><input type="checkbox" id="cal-multi-checkbox" /> Multiple days</label>
           <input type="hidden" id="booking_date_start" />
           <input type="hidden" id="booking_date_end" />
           <div class="cal-dropdown" id="cal-dropdown">
@@ -1014,7 +1020,7 @@
               <button class="cal-nav-btn" id="cal-next">›</button>
             </div>
             <div class="cal-grid">
-              <span class="cal-dow">Sun</span><span class="cal-dow">Mon</span><span class="cal-dow">Tue</span><span class="cal-dow">Wed</span><span class="cal-dow">Thu</span><span class="cal-dow">Fri</span><span class="cal-dow">Sat</span>
+              <span class="cal-dow">Su</span><span class="cal-dow">Mo</span><span class="cal-dow">Tu</span><span class="cal-dow">We</span><span class="cal-dow">Th</span><span class="cal-dow">Fr</span><span class="cal-dow">Sa</span>
             </div>
             <div class="cal-grid" id="cal-days"></div>
           </div>
@@ -1420,7 +1426,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=74"></script>
+<script type="module" src="src/app.js?v=75"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
