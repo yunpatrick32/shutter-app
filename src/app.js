@@ -337,21 +337,22 @@ function renderChatBubbles(msgs){
   bubbles.scrollTop=bubbles.scrollHeight;
 }
 function renderOfferCard(m,offerData){
-  const isCreator=userProfile&&userProfile.id===offerData.creator_profile_id;
-  const isClient=!isCreator;
+  const isSender=m.sender_id===currentUser?.id;
+  const isRecipient=!isSender;
   const status=offerData.status;
   const bookingId=offerData.booking_id;
   const msgId=m.id;
   const delivList=(offerData.deliverables||[]).join(', ')||'—';
   const durLabel=offerData.duration||'—';
+  const counterInput=`<div id="counter-form-${msgId}" style="margin-top:10px;"><div style="display:flex;gap:8px;align-items:center;background:#1f2937;border:1px solid #374151;border-radius:9px;padding:7px 10px;"><span style="color:#9ca3af;font-size:.82rem;">$</span><input type="number" id="counter-input-${msgId}" placeholder="Your counter" min="1" style="background:none;border:none;color:#f9fafb;font-size:.82rem;outline:none;flex:1;font-family:inherit;" /><button onclick="submitCounter('${bookingId}','${msgId}')" style="background:#818cf8;border:none;border-radius:7px;color:#fff;font-size:.76rem;font-weight:700;padding:6px 11px;cursor:pointer;white-space:nowrap;">Send Counter</button></div><button onclick="declineOffer('${bookingId}','${msgId}')" style="background:none;border:none;color:#6b7280;font-size:.72rem;cursor:pointer;margin-top:5px;padding:0;">✕ Decline instead</button></div>`;
   let statusHtml='', actionsHtml='';
   if(status==='offer_pending'){
-    if(isCreator){ actionsHtml=`<div class="offer-actions"><button class="offer-btn offer-accept" onclick="acceptOffer('${bookingId}','${msgId}')">Accept</button><button class="offer-btn offer-counter" onclick="startCounter('${msgId}')">Counter</button><button class="offer-btn offer-decline" onclick="declineOffer('${bookingId}','${msgId}')">Decline</button></div><div id="counter-form-${msgId}" style="display:none;margin-top:10px;"><div style="display:flex;gap:8px;align-items:center;background:#1f2937;border:1px solid #374151;border-radius:9px;padding:8px 10px;"><span style="color:#9ca3af;">$</span><input type="number" id="counter-input-${msgId}" placeholder="Your counter" min="1" style="background:none;border:none;color:#f9fafb;font-size:.85rem;outline:none;flex:1;font-family:inherit;" /><button class="offer-btn offer-accept" style="flex:0 0 auto;padding:6px 12px;" onclick="submitCounter('${bookingId}','${msgId}')">Send</button></div></div>`; }
-    else{ statusHtml=`<div class="offer-status-pending">Awaiting creator response…</div>`; }
+    if(isRecipient){ actionsHtml=`<div class="offer-pill-actions"><button class="offer-pill accept" onclick="acceptOffer('${bookingId}','${msgId}')">✓ Accept</button><button class="offer-pill reject" onclick="showCounterForm('${msgId}')">✗ Reject</button></div>${counterInput}`; }
+    else{ statusHtml=`<div class="offer-status-pending">Awaiting response…</div>`; }
   } else if(status==='countered'){
     const cp=offerData.counter_price;
-    statusHtml=`<div class="offer-status-counter">Creator countered: $${cp}</div>`;
-    if(isClient){ actionsHtml=`<div class="offer-actions"><button class="offer-btn offer-accept" onclick="acceptOffer('${bookingId}','${msgId}')">Accept $${cp}</button><button class="offer-btn offer-decline" onclick="declineOffer('${bookingId}','${msgId}')">Decline</button></div>`; }
+    if(isSender){ actionsHtml=`<div class="offer-pill-actions"><button class="offer-pill accept" onclick="acceptOffer('${bookingId}','${msgId}')">✓ Accept $${cp}</button><button class="offer-pill reject" onclick="declineOffer('${bookingId}','${msgId}')">✗ Decline</button></div>`; statusHtml=`<div class="offer-status-counter">Creator countered: $${cp}</div>`; }
+    else{ statusHtml=`<div class="offer-status-counter">Counter sent: $${cp}</div>`; }
   } else if(status==='accepted'){
     const price=offerData.counter_price||offerData.offered_price;
     statusHtml=`<div class="offer-status-accepted">✓ Booking Confirmed at $${price}</div>`;
@@ -359,6 +360,12 @@ function renderOfferCard(m,offerData){
     statusHtml=`<div class="offer-status-declined">✗ Offer Declined</div>`;
   }
   return `<div class="bubble-wrap"><div class="offer-card"><div class="offer-card-header">📋 Offer Proposal</div><div class="offer-card-row"><span class="offer-label">Type</span><span>${escapeHtml(offerData.shoot_type||'—')}</span></div><div class="offer-card-row"><span class="offer-label">Date</span><span>${escapeHtml(offerData.date||'—')}</span></div><div class="offer-card-row"><span class="offer-label">Duration</span><span>${escapeHtml(durLabel)}</span></div>${delivList!=='—'?`<div class="offer-card-row"><span class="offer-label">Deliverables</span><span>${escapeHtml(delivList)}</span></div>`:''}<div class="offer-card-price">$${offerData.offered_price}</div>${statusHtml}${actionsHtml}</div></div>`;
+}
+function showCounterForm(msgId){
+  const form=document.getElementById('counter-form-'+msgId);
+  if(form){form.style.display='';const inp=document.getElementById('counter-input-'+msgId);if(inp)inp.focus();}
+  const actions=form?.previousElementSibling;
+  if(actions&&actions.classList.contains('offer-pill-actions'))actions.style.display='none';
 }
 async function acceptOffer(bookingId,msgId){
   const{data:msg}=await supabase.from('messages').select('body').eq('id',msgId).single();
@@ -398,7 +405,7 @@ async function declineOffer(bookingId,msgId){
   const creator=window._activeChatCreator;
   if(creator)await loadChatMessages(creator.id,creator.userId);
 }
-window.acceptOffer=acceptOffer; window.startCounter=startCounter; window.submitCounter=submitCounter; window.declineOffer=declineOffer;
+window.acceptOffer=acceptOffer; window.startCounter=startCounter; window.submitCounter=submitCounter; window.declineOffer=declineOffer; window.showCounterForm=showCounterForm;
 
 async function sendChatMessage(){
   if(!currentUser)return;

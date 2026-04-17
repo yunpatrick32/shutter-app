@@ -420,12 +420,6 @@
     .offer-status-counter { font-size: .82rem; font-weight: 700; color: #fbbf24; margin-bottom: 8px; }
     .offer-status-accepted { font-size: .82rem; font-weight: 700; color: #4ade80; }
     .offer-status-declined { font-size: .82rem; color: #9ca3af; }
-    .offer-actions { display: flex; gap: 6px; margin-top: 10px; }
-    .offer-btn { flex: 1; padding: 8px 4px; border-radius: 8px; font-size: .76rem; font-weight: 700; cursor: pointer; border: none; transition: opacity .12s; }
-    .offer-btn:hover { opacity: .85; }
-    .offer-accept { background: #16a34a; color: #fff; }
-    .offer-counter { background: #374151; color: #f9fafb; }
-    .offer-decline { background: transparent; color: #ef4444; border: 1px solid #ef4444!important; }
 
     /* ─── MESSAGES PANEL ──────────────────────────────── */
     #messages-list { padding-bottom: 24px; }
@@ -489,11 +483,16 @@
       padding: 11px 16px; font-size: .875rem; font-weight: 700; cursor: pointer; white-space: nowrap;
     }
     #rate-proposal-btn {
-      display: none; width: 40px; height: 40px; border-radius: 50%;
-      border: 1px solid rgba(22,163,74,.4); background: rgba(22,163,74,.1);
-      color: #16a34a; font-weight: 800; cursor: pointer; flex-shrink: 0;
-      align-items: center; justify-content: center; font-size: .8rem;
+      display: none; background: none; border: none; color: #8b8fa8;
+      font-size: 13px; cursor: pointer; padding: 4px 0; text-align: left;
+      transition: color .15s;
     }
+    #rate-proposal-btn:hover { color: #c0c4d8; }
+    .offer-pill-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .offer-pill { background: none; border-radius: 20px; padding: 5px 14px; font-size: 13px; cursor: pointer; font-weight: 600; transition: opacity .12s; border: 1px solid currentColor; }
+    .offer-pill:hover { opacity: .75; }
+    .offer-pill.accept { color: #4ade80; }
+    .offer-pill.reject  { color: #f87171; }
     #chat-input {
       flex: 1; background: #1f2937; border: 1px solid #374151; border-radius: 22px;
       color: #f9fafb; padding: 10px 15px; font-size: .875rem; outline: none; font-family: inherit;
@@ -1142,9 +1141,9 @@
     </div>
     <div class="chat-input-row">
       <input type="text" id="chat-input" placeholder="Message…" />
-      <button id="rate-proposal-btn" title="Send an offer">💰 Send Offer</button>
       <button id="chat-send">➤</button>
     </div>
+    <button id="rate-proposal-btn" title="Send an offer">+ Send Offer</button>
   </div>
 </div>
 
@@ -1456,7 +1455,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=80"></script>
+<script type="module" src="src/app.js?v=81"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
