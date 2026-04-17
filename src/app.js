@@ -315,8 +315,8 @@ async function loadChatMessages(creatorProfileId, creatorUserId){
     const{data}=await supabase.from('messages').select('*').eq('sender_id',cUserId).eq('recipient_profile_id',userProfile.id).order('created_at');
     received=data||[];
   }
-  // Merge and sort by created_at
-  const all=[...(sent||[]),...received].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  const _seen=new Set();
+  const all=[...(sent||[]),...received].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)).filter(m=>{if(_seen.has(m.id))return false;_seen.add(m.id);return true;});
   renderChatBubbles(all);
   // Mark received as read
   if(userProfile&&cUserId){
@@ -326,6 +326,8 @@ async function loadChatMessages(creatorProfileId, creatorUserId){
 
 function renderChatBubbles(msgs){
   const bubbles=document.getElementById('chat-bubbles');
+  console.log('[chat] rendering',msgs.length,'messages');
+  msgs.forEach(m=>{ let isOffer=false; try{const p=JSON.parse(m.body);isOffer=p?.type==='offer';}catch(e){} if(isOffer)console.log('[offer msg]',m.id,'sender:',m.sender_id,'body:',m.body.slice(0,120)); });
   if(!msgs.length){ bubbles.innerHTML='<div style="padding:40px 20px;color:#6b7280;text-align:center;font-size:.85rem;">No messages yet. Say hello! 👋</div>'; return; }
   bubbles.innerHTML=msgs.map(m=>{
     const out=m.sender_id===currentUser?.id;
@@ -337,7 +339,7 @@ function renderChatBubbles(msgs){
   bubbles.scrollTop=bubbles.scrollHeight;
 }
 function renderOfferCard(m,offerData){
-  const isSender=m.sender_id===currentUser?.id;
+  const isSender=m.sender_id===currentUser?.id&&!offerData.test;
   const isRecipient=!isSender;
   const status=offerData.status;
   const bookingId=offerData.booking_id;
@@ -982,4 +984,14 @@ async function startStripeOnboarding(){
   window.open(url,'_blank');
 }
 window.startStripeOnboarding=startStripeOnboarding;
+window.insertTestOffer=async function(){
+  if(!currentUser||!userProfile){console.log('❌ Must be signed in with a profile first');return;}
+  const{data:booking,error:bErr}=await supabase.from('bookings').insert([{client_user_id:currentUser.id,creator_profile_id:userProfile.id,shoot_type:'Snow Sports',shoot_date:'2026-05-10',duration:'Full Day',notes:'Test offer — diagnosing UI',status:'offer_pending',offered_price:400}]).select().single();
+  if(bErr){console.error('❌ Booking insert failed:',bErr);return;}
+  const offerBody=JSON.stringify({type:'offer',test:true,booking_id:booking.id,creator_profile_id:userProfile.id,shoot_type:'Snow Sports',date:'May 10, 2026',duration:'Full Day',deliverables:['Highlight Reel','Raw Footage'],offered_price:400,status:'offer_pending'});
+  const{error:mErr}=await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:userProfile.id,body:offerBody,is_rate_proposal:false,read:false}]);
+  if(mErr){console.error('❌ Message insert failed:',mErr);return;}
+  console.log('✅ Test offer inserted! booking_id:',booking.id);
+  console.log('👉 Now: open Messages → click your own name → you should see the offer card with Accept/Reject buttons.');
+};
 initAuth();
