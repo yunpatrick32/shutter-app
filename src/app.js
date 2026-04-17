@@ -18,13 +18,27 @@ const myProfile = { name:'Patrick Yun', initials:'PY', location:'Truckee, CA', p
 mapboxgl.accessToken = MAPBOX_TOKEN;
 const map = new mapboxgl.Map({ container:'map', style:'mapbox://styles/mapbox/dark-v11', center:LAKE_TAHOE, zoom:10.5, pitch:50, bearing:-10, antialias:true, attributionControl:false });
 map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
-async function fetchAndRender(){ if(fetchAndRender._running)return; fetchAndRender._running=true; const {data,error}=await supabase.from('profiles').select('*').eq('is_live',true); fetchAndRender._running=false; if(error){console.error('Supabase error:',error);return;} creators=(data||[]).map(toCreator); const now=new Date(); creators.forEach(c=>{if(c.availableNow&&c.availableUntil&&new Date(c.availableUntil)<=now)c.availableNow=false;}); if(userProfile){const me=creators.find(c=>c.id===userProfile.id);if(me&&!me.availableNow&&userProfile.availableNow){supabase.from('profiles').update({available_now:false,available_until:null}).eq('id',userProfile.id).catch(()=>{});userProfile.availableNow=false;userProfile.availableUntil=null;}} const filtered=activeFilters.size===0?creators:creators.filter(c=>c.tags.some(t=>activeFilters.has(t))); renderMarkers(filtered); }
+async function fetchAndRender(){ if(fetchAndRender._running)return; fetchAndRender._running=true; const {data,error}=await supabase.from('profiles').select('*').eq('is_live',true); fetchAndRender._running=false; if((data||[]).length===0&&!error){fetchAndRender._lastEmpty=true;}else{fetchAndRender._lastEmpty=false;} if(error){console.error('Supabase error:',error);return;} creators=(data||[]).map(toCreator); const now=new Date(); creators.forEach(c=>{if(c.availableNow&&c.availableUntil&&new Date(c.availableUntil)<=now)c.availableNow=false;}); if(userProfile){const me=creators.find(c=>c.id===userProfile.id);if(me&&!me.availableNow&&userProfile.availableNow){supabase.from('profiles').update({available_now:false,available_until:null}).eq('id',userProfile.id).catch(()=>{});userProfile.availableNow=false;userProfile.availableUntil=null;}} const filtered=activeFilters.size===0?creators:creators.filter(c=>c.tags.some(t=>activeFilters.has(t))); renderMarkers(filtered); }
 function setupTerrain(){ if(map.getSource('mapbox-dem'))return; map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14}); map.setTerrain({source:'mapbox-dem',exaggeration:1.4}); map.setFog({color:'rgb(180,205,230)','high-color':'rgb(30,80,200)','horizon-blend':0.015,'space-color':'rgb(8,8,20)','star-intensity':0.7}); }
 map.on('load',()=>{ setupTerrain(); fetchAndRender(); });
 map.on('style.load',()=>{ setupTerrain(); if(!creators.length)fetchAndRender(); });
 // Handle Stripe Connect return URL (?stripe_return=1&profile_id=xxx&account_id=yyy)
 const _stripeReturnParams=(()=>{const p=new URLSearchParams(window.location.search);if(p.get('stripe_return')==='1'){history.replaceState({},'','/');return{profileId:p.get('profile_id'),accountId:p.get('account_id')};}if(p.get('stripe_refresh')==='1'){history.replaceState({},'','/');showToast('Payout setup incomplete — try again','#f59e0b');}return null;})();
-async function initAuth(){ const {data:{session}}=await supabase.auth.getSession(); if(session?.user)await handleSignIn(session.user); supabase.auth.onAuthStateChange(async(event,session)=>{ if(event==='SIGNED_IN'&&session?.user){await handleSignIn(session.user);closeLoginModal();} else if(event==='SIGNED_OUT'){currentUser=null;userProfile=null;updateProfileBtn();updateNotifBadge();} }); }
+async function initAuth(){
+  const {data:{session}}=await supabase.auth.getSession();
+  if(session?.user){await handleSignIn(session.user);}else{updateProfileBtn();}
+  fetchAndRender();
+  supabase.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='INITIAL_SESSION'){
+      if(session?.user)await handleSignIn(session.user);
+      fetchAndRender();
+    } else if(event==='SIGNED_IN'&&session?.user){
+      await handleSignIn(session.user); closeLoginModal(); fetchAndRender();
+    } else if(event==='SIGNED_OUT'){
+      currentUser=null; userProfile=null; updateProfileBtn(); updateNotifBadge(); fetchAndRender();
+    }
+  });
+}
 async function handleSignIn(user){ currentUser=user; const {data}=await supabase.from('profiles').select('*').eq('user_id',user.id).maybeSingle(); userProfile=data?toCreator(data):null;
   // Mark Stripe onboarding complete if returning from hosted flow
   if(_stripeReturnParams&&userProfile?.id===_stripeReturnParams.profileId){
