@@ -1159,12 +1159,12 @@
       <button id="mp-invite-btn">Share signup link ↗</button>
     </div>
     <div id="mp-payout-banner" style="display:none;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(129,140,248,.35);border-radius:12px;padding:14px 16px;margin-bottom:14px;align-items:center;gap:12px;">
-      <span style="font-size:1.3rem;flex-shrink:0;">💳</span>
+      <span id="mp-payout-icon" style="font-size:1.3rem;flex-shrink:0;">💳</span>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:.85rem;font-weight:700;color:#f9fafb;">Add your payout account</div>
-        <div style="font-size:.75rem;color:#6b7280;margin-top:2px;">Start receiving payments from clients</div>
+        <div id="mp-payout-title" style="font-size:.85rem;font-weight:700;color:#f9fafb;">Connect payouts</div>
+        <div id="mp-payout-sub" style="font-size:.75rem;color:#6b7280;margin-top:2px;">Start receiving payments from clients</div>
       </div>
-      <button id="mp-payout-btn" onclick="startStripeOnboarding()" style="background:#818cf8;color:#fff;border:none;border-radius:8px;padding:8px 13px;font-size:.78rem;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;">Set up payouts</button>
+      <button id="mp-payout-btn" onclick="startStripeOnboarding()" style="background:#818cf8;color:#fff;border:none;border-radius:8px;padding:8px 13px;font-size:.78rem;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;">Connect payouts</button>
     </div>
     <div class="mp-hero">
       <div style="position:relative;flex-shrink:0;">
@@ -1455,7 +1455,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=82"></script>
+<script type="module" src="src/app.js?v=83"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 import { TAG_META } from './data.js?v=14';
 const supabase = window.supabase.createClient('https://panktkmwgcttjpebucqy.supabase.co', 'sb_publishable_tuwGL-r9XQO7mlC6FPOVdQ_35XHkEa1');
-function toCreator(r){ return { id:r.id, userId:r.user_id, name:r.name, initials:r.initials, primaryTag:r.primary_tag, lat:r.lat, lng:r.lng, location:r.location, rating:r.rating, reviewCount:r.review_count, tags:r.tags||[], bio:r.bio, gear:r.gear||[], rates:{halfDay:r.half_day_rate,fullDay:r.full_day_rate}, schedule:r.schedule||[true,true,true,true,true,true,true], isLive:r.is_live, showRates:r.show_rates, avatarUrl:r.avatar_url||null, instagramHandle:r.instagram_handle||null, availableNow:r.available_now||false, availableUntil:r.available_until||null, viewCount:r.view_count||0, portfolioPhotos:r.portfolio_photos||[], stripeAccountId:r.stripe_account_id||null, stripeOnboarded:r.stripe_onboarded||false }; }
+function toCreator(r){ return { id:r.id, userId:r.user_id, name:r.name, initials:r.initials, primaryTag:r.primary_tag, lat:r.lat, lng:r.lng, location:r.location, rating:r.rating, reviewCount:r.review_count, tags:r.tags||[], bio:r.bio, gear:r.gear||[], rates:{halfDay:r.half_day_rate,fullDay:r.full_day_rate}, schedule:r.schedule||[true,true,true,true,true,true,true], isLive:r.is_live, showRates:r.show_rates, avatarUrl:r.avatar_url||null, instagramHandle:r.instagram_handle||null, availableNow:r.available_now||false, availableUntil:r.available_until||null, viewCount:r.view_count||0, portfolioPhotos:r.portfolio_photos||[], stripeAccountId:r.stripe_account_id||null, stripeOnboarded:r.stripe_onboarded||false, stripePayoutsEnabled:r.stripe_payouts_enabled||false, stripeAccountStatus:r.stripe_account_status||'pending_onboarding', lastPayoutAt:r.last_payout_at||null }; }
+function toGig(r){ return { id:r.id, creatorId:r.creator_id, title:r.title, description:r.description||'', gigType:r.gig_type, specialties:r.specialties||[], lat:r.lat, lng:r.lng, locationName:r.location_name||'', shootDate:r.shoot_date, shootStartTime:r.shoot_start_time||null, durationHours:r.duration_hours||null, rateType:r.rate_type||null, rateAmountCents:r.rate_amount_cents||null, spotsAvailable:r.spots_available||1, spotsFilled:r.spots_filled||0, status:r.status||'open', expiresAt:r.expires_at, createdAt:r.created_at, updatedAt:r.updated_at }; }
 function isAvailNow(c){ return !!(c.availableNow && c.availableUntil && new Date(c.availableUntil)>new Date()); }
 let creators = [];
 const SHUTTER_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScf520qHkbI_0RynCAsm3aEb_ab3Sr6B4aQ7-ESJtARPdWgmw/viewform';
@@ -467,7 +468,7 @@ async function updateNotifBadge(){
 
 // ─── MY PROFILE ──────────────────────────────────────────────────────────────
 
-function openMyProfile(){ closeAllPanels(); const p=userProfile||myProfile; const meta=TAG_META[p.primaryTag]||TAG_META['snowboard']; const av=document.getElementById('mp-avatar'); if(p.avatarUrl){av.textContent='';av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.backgroundImage=`url(${p.avatarUrl})`;av.style.backgroundSize='cover';av.style.backgroundPosition='center';}else{av.textContent=p.initials;av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.color=meta.color;av.style.backgroundImage='';} document.getElementById('mp-name').textContent=p.name; document.getElementById('mp-location').textContent=p.location||''; document.getElementById('mp-bio').value=p.bio||''; document.getElementById('mp-views').textContent=userProfile?.viewCount||0; document.getElementById('mp-inquiries').textContent=0; document.getElementById('mp-earnings').textContent=(userProfile?.rating||5.0).toFixed(1)+'★'; if(userProfile){supabase.from('profiles').select('view_count').eq('id',userProfile.id).single().then(({data})=>{document.getElementById('mp-views').textContent=data?.view_count||0;});supabase.from('messages').select('*',{count:'exact',head:true}).eq('recipient_profile_id',userProfile.id).then(({count})=>{document.getElementById('mp-inquiries').textContent=count||0;});} document.getElementById('mp-half-rate').value=p.rates?.halfDay||''; document.getElementById('mp-full-rate').value=p.rates?.fullDay||''; renderMpSpecialtiesGrid(); document.getElementById('mp-gear-list').innerHTML=(p.gear||[]).map((g,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1f2937;border-radius:8px;margin-bottom:6px;font-size:0.85rem;"><span>▸ ${escapeHtml(g)}</span><button onclick="removeGear(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;">×</button></div>`).join(''); document.getElementById('live-toggle').checked=p.isLive??true; updateLiveStatus(); document.getElementById('rates-visible-toggle').checked=p.showRates||false; updateRatesVisStatus(); document.getElementById('mp-portfolio-url').value=p.portfolioUrl||''; document.getElementById('mp-instagram').value=p.instagramHandle?`@${p.instagramHandle}`:''; renderMpScheduleGrid(); renderMpPortfolioGrid(); const anBtn=document.getElementById('mp-avail-now-btn'); if(anBtn){const active=userProfile&&isAvailNow(userProfile);anBtn.classList.toggle('active',active);anBtn.textContent=active?'🟢 Available Now — tap to turn off':'🟢 Set Available Now (8 hrs)';} const pb=document.getElementById('mp-payout-banner');if(pb){pb.style.display=userProfile&&!userProfile.stripeOnboarded?'flex':'none';} document.getElementById('my-profile-panel').classList.add('open'); setLocateButtonVisibility(false); }
+function openMyProfile(){ closeAllPanels(); const p=userProfile||myProfile; const meta=TAG_META[p.primaryTag]||TAG_META['snowboard']; const av=document.getElementById('mp-avatar'); if(p.avatarUrl){av.textContent='';av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.backgroundImage=`url(${p.avatarUrl})`;av.style.backgroundSize='cover';av.style.backgroundPosition='center';}else{av.textContent=p.initials;av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.color=meta.color;av.style.backgroundImage='';} document.getElementById('mp-name').textContent=p.name; document.getElementById('mp-location').textContent=p.location||''; document.getElementById('mp-bio').value=p.bio||''; document.getElementById('mp-views').textContent=userProfile?.viewCount||0; document.getElementById('mp-inquiries').textContent=0; document.getElementById('mp-earnings').textContent=(userProfile?.rating||5.0).toFixed(1)+'★'; if(userProfile){supabase.from('profiles').select('view_count').eq('id',userProfile.id).single().then(({data})=>{document.getElementById('mp-views').textContent=data?.view_count||0;});supabase.from('messages').select('*',{count:'exact',head:true}).eq('recipient_profile_id',userProfile.id).then(({count})=>{document.getElementById('mp-inquiries').textContent=count||0;});} document.getElementById('mp-half-rate').value=p.rates?.halfDay||''; document.getElementById('mp-full-rate').value=p.rates?.fullDay||''; renderMpSpecialtiesGrid(); document.getElementById('mp-gear-list').innerHTML=(p.gear||[]).map((g,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1f2937;border-radius:8px;margin-bottom:6px;font-size:0.85rem;"><span>▸ ${escapeHtml(g)}</span><button onclick="removeGear(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;">×</button></div>`).join(''); document.getElementById('live-toggle').checked=p.isLive??true; updateLiveStatus(); document.getElementById('rates-visible-toggle').checked=p.showRates||false; updateRatesVisStatus(); document.getElementById('mp-portfolio-url').value=p.portfolioUrl||''; document.getElementById('mp-instagram').value=p.instagramHandle?`@${p.instagramHandle}`:''; renderMpScheduleGrid(); renderMpPortfolioGrid(); const anBtn=document.getElementById('mp-avail-now-btn'); if(anBtn){const active=userProfile&&isAvailNow(userProfile);anBtn.classList.toggle('active',active);anBtn.textContent=active?'🟢 Available Now — tap to turn off':'🟢 Set Available Now (8 hrs)';} renderPayoutBanner(); document.getElementById('my-profile-panel').classList.add('open'); setLocateButtonVisibility(false); }
 function closeMyProfile(){ document.getElementById('my-profile-panel').classList.remove('open'); setLocateButtonVisibility(true); }
 function removeGear(idx){ (userProfile||myProfile).gear.splice(idx,1); openMyProfile(); }
 function addGear(){ const input=document.getElementById('mp-gear-input'); const val=input.value.trim(); if(!val)return; (userProfile||myProfile).gear.push(val); input.value=''; openMyProfile(); showToast(`Added: ${val}`); }
@@ -971,16 +972,56 @@ document.getElementById('jn-location').addEventListener('input',e=>{
 });
 document.getElementById('jn-location').addEventListener('blur',()=>setTimeout(closeJnSuggestions,150));
 document.getElementById('jn-location').addEventListener('keydown',e=>{if(e.key==='Escape')closeJnSuggestions();});
+function renderPayoutBanner(){
+  const pb=document.getElementById('mp-payout-banner');
+  if(!pb||!userProfile){ if(pb)pb.style.display='none'; return; }
+  const titleEl=document.getElementById('mp-payout-title');
+  const subEl=document.getElementById('mp-payout-sub');
+  const btn=document.getElementById('mp-payout-btn');
+  const iconEl=document.getElementById('mp-payout-icon');
+  if(!titleEl||!subEl||!btn||!iconEl)return;
+  const hasAccount=!!userProfile.stripeAccountId;
+  const enabled=!!userProfile.stripePayoutsEnabled;
+  const status=userProfile.stripeAccountStatus||'pending_onboarding';
+  if(enabled){
+    pb.style.display='flex';
+    pb.style.borderColor='rgba(34,197,94,.4)';
+    iconEl.textContent='✅';
+    titleEl.textContent='Payouts active';
+    subEl.textContent='Stripe is ready to pay you for completed bookings';
+    btn.style.display='none';
+  } else if(hasAccount){
+    pb.style.display='flex';
+    pb.style.borderColor='rgba(251,191,36,.45)';
+    iconEl.textContent='⚠️';
+    titleEl.textContent='Finish Stripe setup';
+    subEl.textContent=status==='restricted'?'Additional info required — continue in Stripe':'A few more steps to enable payouts';
+    btn.style.display='';
+    btn.textContent='Continue setup';
+    btn.disabled=false;
+  } else {
+    pb.style.display='flex';
+    pb.style.borderColor='rgba(129,140,248,.35)';
+    iconEl.textContent='💳';
+    titleEl.textContent='Connect payouts';
+    subEl.textContent='Start receiving payments from clients';
+    btn.style.display='';
+    btn.textContent='Connect payouts';
+    btn.disabled=false;
+  }
+}
+window.renderPayoutBanner=renderPayoutBanner;
 async function startStripeOnboarding(){
   if(!userProfile)return;
   const btn=document.getElementById('mp-payout-btn');
   if(btn){btn.textContent='Setting up…';btn.disabled=true;}
   const res=await supabase.functions.invoke('stripe-onboard',{body:{profileId:userProfile.id,userId:currentUser?.id||''}});
-  if(btn){btn.textContent='Set up payouts';btn.disabled=false;}
-  if(res.error){showToast('Setup failed: '+res.error.message,'#ef4444');return;}
+  if(btn){btn.disabled=false;}
+  if(res.error){showToast('Setup failed: '+res.error.message,'#ef4444');renderPayoutBanner();return;}
   const{url,accountId}=res.data;
   await supabase.from('profiles').update({stripe_account_id:accountId}).eq('id',userProfile.id).then(()=>{},()=>{});
   userProfile.stripeAccountId=accountId;
+  renderPayoutBanner();
   window.open(url,'_blank');
 }
 window.startStripeOnboarding=startStripeOnboarding;
