@@ -1,10 +1,11 @@
+-- Corrected Apr 21: creator_id + applicant_id are integer to match profiles.id schema.
 -- Run in Supabase SQL Editor.
 -- Gig Feed data model — per Dev Agent Report (Apr 17, 2026) §3.
 -- Creators post location-tagged shoot opportunities; other creators apply.
 
 CREATE TABLE IF NOT EXISTS public.gigs (
   id                  uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
-  creator_id          uuid         NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  creator_id          integer      NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title               text         NOT NULL,
   description         text,
   gig_type            text         NOT NULL CHECK (gig_type IN ('collab','paid','looking_for')),
@@ -72,7 +73,7 @@ CREATE POLICY gigs_delete_own ON public.gigs
 CREATE TABLE IF NOT EXISTS public.gig_applications (
   id              uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
   gig_id          uuid         NOT NULL REFERENCES public.gigs(id) ON DELETE CASCADE,
-  applicant_id    uuid         NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  applicant_id    integer      NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   message         text,
   status          text         NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined','withdrawn')),
   created_at      timestamptz  NOT NULL DEFAULT now(),

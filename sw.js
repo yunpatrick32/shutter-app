@@ -1,6 +1,6 @@
 // Bump CACHE_VERSION in lockstep with index.html's app.js ?v=N so PWA installs
 // pick up the new shell on upgrade.
-const CACHE_VERSION = 'v83';
+const CACHE_VERSION = 'v84';
 const CACHE_NAME = `shutter-${CACHE_VERSION}`;
 const ASSETS = ['/', '/index.html', '/src/app.js', '/src/data.js'];
 

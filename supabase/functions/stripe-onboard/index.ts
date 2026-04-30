@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
     // Generate the hosted onboarding link
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: `https://shutter-app.netlify.app?stripe_refresh=1&profile_id=${profileId}`,
-      return_url:  `https://shutter-app.netlify.app?stripe_return=1&profile_id=${profileId}&account_id=${account.id}`,
+      refresh_url: `https://shutterfind.app?stripe_refresh=1&profile_id=${profileId}`,
+      return_url:  `https://shutterfind.app?stripe_return=1&profile_id=${profileId}&account_id=${account.id}`,
       type: 'account_onboarding',
     });
 

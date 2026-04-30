@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
         from: 'Shutter <notifications@shutter-app.netlify.app>',
         to: [user.email],
         subject: 'New message on Shutter',
-        text: `${senderName} sent you a message: ${messageBody}\n\n— Open Shutter: https://shutter-app.netlify.app`,
+        text: `${senderName} sent you a message: ${messageBody}\n\n— Open Shutter: https://shutterfind.app`,
       }),
     })
 

@@ -1,6 +1,6 @@
 import { TAG_META } from './data.js?v=14';
 const supabase = window.supabase.createClient('https://panktkmwgcttjpebucqy.supabase.co', 'sb_publishable_tuwGL-r9XQO7mlC6FPOVdQ_35XHkEa1');
-function toCreator(r){ return { id:r.id, userId:r.user_id, name:r.name, initials:r.initials, primaryTag:r.primary_tag, lat:r.lat, lng:r.lng, location:r.location, rating:r.rating, reviewCount:r.review_count, tags:r.tags||[], bio:r.bio, gear:r.gear||[], rates:{halfDay:r.half_day_rate,fullDay:r.full_day_rate}, schedule:r.schedule||[true,true,true,true,true,true,true], isLive:r.is_live, showRates:r.show_rates, avatarUrl:r.avatar_url||null, instagramHandle:r.instagram_handle||null, availableNow:r.available_now||false, availableUntil:r.available_until||null, viewCount:r.view_count||0, portfolioPhotos:r.portfolio_photos||[], stripeAccountId:r.stripe_account_id||null, stripeOnboarded:r.stripe_onboarded||false, stripePayoutsEnabled:r.stripe_payouts_enabled||false, stripeAccountStatus:r.stripe_account_status||'pending_onboarding', lastPayoutAt:r.last_payout_at||null }; }
+function toCreator(r){ return { id:r.id, userId:r.user_id, name:r.name, initials:r.initials, primaryTag:r.primary_tag, lat:r.lat, lng:r.lng, location:r.location, rating:r.rating, reviewCount:r.review_count, tags:r.tags||[], bio:r.bio, gear:r.gear||[], rates:{halfDay:r.half_day_rate,fullDay:r.full_day_rate}, schedule:r.schedule||[true,true,true,true,true,true,true], isLive:r.is_live, showRates:r.show_rates, avatarUrl:r.avatar_url||null, instagramHandle:r.instagram_handle||null, availableNow:r.available_now||false, availableUntil:r.available_until||null, viewCount:r.view_count||0, portfolioPhotos:r.portfolio_photos||[], stripeAccountId:r.stripe_account_id||null, stripeOnboarded:r.stripe_onboarded||false, stripePayoutsEnabled:r.stripe_payouts_enabled||false, stripeAccountStatus:r.stripe_account_status||'pending_onboarding', lastPayoutAt:r.last_payout_at||null, signupSource:r.signup_source||null }; }
 function toGig(r){ return { id:r.id, creatorId:r.creator_id, title:r.title, description:r.description||'', gigType:r.gig_type, specialties:r.specialties||[], lat:r.lat, lng:r.lng, locationName:r.location_name||'', shootDate:r.shoot_date, shootStartTime:r.shoot_start_time||null, durationHours:r.duration_hours||null, rateType:r.rate_type||null, rateAmountCents:r.rate_amount_cents||null, spotsAvailable:r.spots_available||1, spotsFilled:r.spots_filled||0, status:r.status||'open', expiresAt:r.expires_at, createdAt:r.created_at, updatedAt:r.updated_at }; }
 function isAvailNow(c){ return !!(c.availableNow && c.availableUntil && new Date(c.availableUntil)>new Date()); }
 let creators = [];
@@ -21,7 +21,7 @@ const map = new mapboxgl.Map({ container:'map', style:'mapbox://styles/mapbox/da
 map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
 async function fetchAndRender(){ if(fetchAndRender._running)return; fetchAndRender._running=true; const {data,error}=await supabase.from('profiles').select('*').eq('is_live',true); fetchAndRender._running=false; if((data||[]).length===0&&!error){fetchAndRender._lastEmpty=true;}else{fetchAndRender._lastEmpty=false;} if(error){console.error('Supabase error:',error);return;} creators=(data||[]).map(toCreator); const now=new Date(); creators.forEach(c=>{if(c.availableNow&&c.availableUntil&&new Date(c.availableUntil)<=now)c.availableNow=false;}); if(userProfile){const me=creators.find(c=>c.id===userProfile.id);if(me&&!me.availableNow&&userProfile.availableNow){supabase.from('profiles').update({available_now:false,available_until:null}).eq('id',userProfile.id).then(()=>{},()=>{});userProfile.availableNow=false;userProfile.availableUntil=null;}} const filtered=activeFilters.size===0?creators:creators.filter(c=>c.tags.some(t=>activeFilters.has(t))); renderMarkers(filtered); }
 function setupTerrain(){ if(map.getSource('mapbox-dem'))return; map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14}); map.setTerrain({source:'mapbox-dem',exaggeration:1.4}); map.setFog({color:'rgb(180,205,230)','high-color':'rgb(30,80,200)','horizon-blend':0.015,'space-color':'rgb(8,8,20)','star-intensity':0.7}); }
-map.on('load',()=>{ setupTerrain(); fetchAndRender(); });
+map.on('load',()=>{ setupTerrain(); fetchAndRender(); fetchGigs(); });
 map.on('style.load',()=>{ setupTerrain(); if(!creators.length)fetchAndRender(); });
 // Handle Stripe Connect return URL (?stripe_return=1&profile_id=xxx&account_id=yyy)
 const _stripeReturnParams=(()=>{const p=new URLSearchParams(window.location.search);if(p.get('stripe_return')==='1'){history.replaceState({},'','/');return{profileId:p.get('profile_id'),accountId:p.get('account_id')};}if(p.get('stripe_refresh')==='1'){history.replaceState({},'','/');showToast('Payout setup incomplete — try again','#f59e0b');}return null;})();
@@ -46,13 +46,14 @@ async function handleSignIn(user){ currentUser=user; const {data}=await supabase
     await supabase.from('profiles').update({stripe_onboarded:true,stripe_account_id:_stripeReturnParams.accountId}).eq('id',userProfile.id);
     userProfile.stripeOnboarded=true; userProfile.stripeAccountId=_stripeReturnParams.accountId;
     showToast('Payout account connected! 🎉','#16a34a');
+    pollStripeAccountStatus();
   }
   updateProfileBtn(); updateNotifBadge(); if(!userProfile){ setTimeout(()=>{ closeLoginModal(); openJoin(); },500); } else { closeLoginModal(); } }
 function updateProfileBtn(){ const btn=document.getElementById('profile-btn'); if(currentUser&&userProfile?.avatarUrl){ btn.innerHTML=`<img src="${userProfile.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" />`; btn.style.background='transparent'; btn.style.borderColor='rgba(129,140,248,.5)'; btn.style.color=''; btn.style.padding='0'; btn.style.overflow='hidden'; }else if(currentUser){ btn.innerHTML='👤'; btn.style.background='rgba(129,140,248,.15)'; btn.style.borderColor='rgba(129,140,248,.4)'; btn.style.color='#818cf8'; btn.style.padding=''; btn.style.overflow=''; }else{ btn.innerHTML='👤'; btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; btn.style.padding=''; btn.style.overflow=''; } const joinBtn=document.getElementById('join-btn'); if(userProfile){joinBtn.style.display='none';}else{joinBtn.style.display='';} }
 function openLoginModal(){ document.getElementById('login-email').value=''; document.getElementById('login-sent').style.display='none'; const btn=document.getElementById('login-send');btn.disabled=false;btn.textContent='Send me a login link'; document.getElementById('login-modal').classList.add('open'); }
 function closeLoginModal(){ document.getElementById('login-modal').classList.remove('open'); }
-async function signInWithGoogle(){ await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://shutter-app.netlify.app'}}); }
-async function sendMagicLink(){ const email=document.getElementById('login-email').value.trim(); if(!email){showToast('Enter your email','#ef4444');return;} const btn=document.getElementById('login-send');btn.disabled=true;btn.textContent='Sending…'; const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:'https://shutter-app.netlify.app'}}); if(error){btn.disabled=false;btn.textContent='Send me a login link';showToast('Error sending link','#ef4444');return;} document.getElementById('login-sent').style.display='block'; }
+async function signInWithGoogle(){ await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://shutterfind.app'}}); }
+async function sendMagicLink(){ const email=document.getElementById('login-email').value.trim(); if(!email){showToast('Enter your email','#ef4444');return;} const btn=document.getElementById('login-send');btn.disabled=true;btn.textContent='Sending…'; const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:'https://shutterfind.app'}}); if(error){btn.disabled=false;btn.textContent='Send me a login link';showToast('Error sending link','#ef4444');return;} document.getElementById('login-sent').style.display='block'; }
 
 function setLocateButtonVisibility(visible){
   const btn=document.getElementById('locate-btn');
@@ -468,7 +469,7 @@ async function updateNotifBadge(){
 
 // ─── MY PROFILE ──────────────────────────────────────────────────────────────
 
-function openMyProfile(){ closeAllPanels(); const p=userProfile||myProfile; const meta=TAG_META[p.primaryTag]||TAG_META['snowboard']; const av=document.getElementById('mp-avatar'); if(p.avatarUrl){av.textContent='';av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.backgroundImage=`url(${p.avatarUrl})`;av.style.backgroundSize='cover';av.style.backgroundPosition='center';}else{av.textContent=p.initials;av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.color=meta.color;av.style.backgroundImage='';} document.getElementById('mp-name').textContent=p.name; document.getElementById('mp-location').textContent=p.location||''; document.getElementById('mp-bio').value=p.bio||''; document.getElementById('mp-views').textContent=userProfile?.viewCount||0; document.getElementById('mp-inquiries').textContent=0; document.getElementById('mp-earnings').textContent=(userProfile?.rating||5.0).toFixed(1)+'★'; if(userProfile){supabase.from('profiles').select('view_count').eq('id',userProfile.id).single().then(({data})=>{document.getElementById('mp-views').textContent=data?.view_count||0;});supabase.from('messages').select('*',{count:'exact',head:true}).eq('recipient_profile_id',userProfile.id).then(({count})=>{document.getElementById('mp-inquiries').textContent=count||0;});} document.getElementById('mp-half-rate').value=p.rates?.halfDay||''; document.getElementById('mp-full-rate').value=p.rates?.fullDay||''; renderMpSpecialtiesGrid(); document.getElementById('mp-gear-list').innerHTML=(p.gear||[]).map((g,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1f2937;border-radius:8px;margin-bottom:6px;font-size:0.85rem;"><span>▸ ${escapeHtml(g)}</span><button onclick="removeGear(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;">×</button></div>`).join(''); document.getElementById('live-toggle').checked=p.isLive??true; updateLiveStatus(); document.getElementById('rates-visible-toggle').checked=p.showRates||false; updateRatesVisStatus(); document.getElementById('mp-portfolio-url').value=p.portfolioUrl||''; document.getElementById('mp-instagram').value=p.instagramHandle?`@${p.instagramHandle}`:''; renderMpScheduleGrid(); renderMpPortfolioGrid(); const anBtn=document.getElementById('mp-avail-now-btn'); if(anBtn){const active=userProfile&&isAvailNow(userProfile);anBtn.classList.toggle('active',active);anBtn.textContent=active?'🟢 Available Now — tap to turn off':'🟢 Set Available Now (8 hrs)';} renderPayoutBanner(); document.getElementById('my-profile-panel').classList.add('open'); setLocateButtonVisibility(false); }
+function openMyProfile(){ closeAllPanels(); const p=userProfile||myProfile; const meta=TAG_META[p.primaryTag]||TAG_META['snowboard']; const av=document.getElementById('mp-avatar'); if(p.avatarUrl){av.textContent='';av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.backgroundImage=`url(${p.avatarUrl})`;av.style.backgroundSize='cover';av.style.backgroundPosition='center';}else{av.textContent=p.initials;av.style.background=meta.bg;av.style.borderColor=meta.color;av.style.color=meta.color;av.style.backgroundImage='';} document.getElementById('mp-name').textContent=p.name; document.getElementById('mp-location').textContent=p.location||''; document.getElementById('mp-bio').value=p.bio||''; document.getElementById('mp-views').textContent=userProfile?.viewCount||0; document.getElementById('mp-inquiries').textContent=0; document.getElementById('mp-earnings').textContent=(userProfile?.rating||5.0).toFixed(1)+'★'; if(userProfile){supabase.from('profiles').select('view_count').eq('id',userProfile.id).single().then(({data})=>{document.getElementById('mp-views').textContent=data?.view_count||0;});supabase.from('messages').select('*',{count:'exact',head:true}).eq('recipient_profile_id',userProfile.id).then(({count})=>{document.getElementById('mp-inquiries').textContent=count||0;});} document.getElementById('mp-half-rate').value=p.rates?.halfDay||''; document.getElementById('mp-full-rate').value=p.rates?.fullDay||''; renderMpSpecialtiesGrid(); document.getElementById('mp-gear-list').innerHTML=(p.gear||[]).map((g,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1f2937;border-radius:8px;margin-bottom:6px;font-size:0.85rem;"><span>▸ ${escapeHtml(g)}</span><button onclick="removeGear(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;">×</button></div>`).join(''); document.getElementById('live-toggle').checked=p.isLive??true; updateLiveStatus(); document.getElementById('rates-visible-toggle').checked=p.showRates||false; updateRatesVisStatus(); document.getElementById('mp-portfolio-url').value=p.portfolioUrl||''; document.getElementById('mp-instagram').value=p.instagramHandle?`@${p.instagramHandle}`:''; renderMpScheduleGrid(); renderMpPortfolioGrid(); const anBtn=document.getElementById('mp-avail-now-btn'); if(anBtn){const active=userProfile&&isAvailNow(userProfile);anBtn.classList.toggle('active',active);anBtn.textContent=active?'🟢 Available Now — tap to turn off':'🟢 Set Available Now (8 hrs)';} renderPayoutBanner(); if(userProfile&&userProfile.stripeAccountId&&!userProfile.stripePayoutsEnabled){if(!_stripeStatusInterval)_stripeStatusInterval=setInterval(pollStripeAccountStatus,10000);pollStripeAccountStatus();}else if(_stripeStatusInterval){clearInterval(_stripeStatusInterval);_stripeStatusInterval=null;} document.getElementById('my-profile-panel').classList.add('open'); setLocateButtonVisibility(false); }
 function closeMyProfile(){ document.getElementById('my-profile-panel').classList.remove('open'); setLocateButtonVisibility(true); }
 function removeGear(idx){ (userProfile||myProfile).gear.splice(idx,1); openMyProfile(); }
 function addGear(){ const input=document.getElementById('mp-gear-input'); const val=input.value.trim(); if(!val)return; (userProfile||myProfile).gear.push(val); input.value=''; openMyProfile(); showToast(`Added: ${val}`); }
@@ -538,7 +539,7 @@ function renderJnPortfolioGrid(){
 function removeJnPortfolioPhoto(i){jnPortfolioFiles.splice(i,1);renderJnPortfolioGrid();}
 window.removeJnPortfolioPhoto=removeJnPortfolioPhoto;
 async function geocodeLocation(locationStr){ try{ const res=await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(locationStr)}.json?limit=1&access_token=${MAPBOX_TOKEN}`); const json=await res.json(); const [lng,lat]=json.features?.[0]?.center||[]; return{lat:lat||39.0968,lng:lng||-120.0324}; }catch(e){ return{lat:39.0968,lng:-120.0324}; } }
-async function submitJoin(){ const termsChecked=document.getElementById('jn-terms')?.checked; if(!termsChecked){showToast('Please accept the Terms & Privacy Policy','#ef4444');return;} if(!currentUser){const{data:{session}}=await supabase.auth.getSession();if(session?.user){currentUser=session.user;}else{showToast('Please sign in first','#ef4444');closeJoin();openLoginModal();return;}} const name=document.getElementById('jn-name').value.trim(); const location=document.getElementById('jn-location').value.trim(); const tags=[...document.querySelectorAll('.spec-check:checked')].map(cb=>cb.value); const primaryTag=document.getElementById('jn-primary-tag')?.value||tags[0]; if(!name){showToast('Please enter your name','#ef4444');return;} if(!location){showToast('Please enter your location','#ef4444');return;} if(!tags.length){showToast('Select at least one specialty','#ef4444');return;} const btn=document.getElementById('join-submit'); btn.disabled=true; btn.textContent='Adding you…'; const parts=name.trim().split(/\s+/); const initials=parts.length>=2?(parts[0][0]+parts[parts.length-1][0]).toUpperCase():name.slice(0,2).toUpperCase(); const gearRaw=document.getElementById('jn-gear').value; const gear=gearRaw?gearRaw.split(',').map(g=>g.trim()).filter(Boolean):[]; const portfolioRaw=document.getElementById('jn-portfolio-url')?.value?.trim()||''; const portfolioUrl=portfolioRaw?(portfolioRaw.startsWith('http')?portfolioRaw:`https://${portfolioRaw}`):''; const {lat,lng}=await geocodeLocation(location); let avatarUrl=null; const avatarFile=document.getElementById('jn-avatar-input')?.files?.[0]; if(avatarFile&&currentUser){const{error:upErr}=await supabase.storage.from('avatars').upload(`${currentUser.id}.jpg`,avatarFile,{upsert:true,contentType:avatarFile.type});if(!upErr)avatarUrl=supabase.storage.from('avatars').getPublicUrl(`${currentUser.id}.jpg`).data.publicUrl;} const row={name,initials,primary_tag:primaryTag,lat,lng,location,rating:5.0,review_count:0,tags,bio:document.getElementById('jn-bio').value.trim(),gear,half_day_rate:parseInt(document.getElementById('jn-half').value)||null,full_day_rate:parseInt(document.getElementById('jn-full').value)||null,schedule:[true,true,true,true,true,true,true],is_live:true,show_rates:document.getElementById('jn-show-rates')?.checked||false,portfolio_url:portfolioUrl,user_id:currentUser?.id||null,avatar_url:avatarUrl,instagram_handle:document.getElementById('jn-instagram')?.value?.trim().replace('@','')||null}; const {data:inserted,error}=await supabase.from('profiles').insert([row]).select().single(); btn.disabled=false; btn.textContent='Add me to the map'; if(error){console.error(error);showToast('Error — try again','#ef4444');return;} if(inserted)userProfile=toCreator(inserted); const photoFiles=jnPortfolioFiles.filter(Boolean); if(photoFiles.length&&inserted){const urls=[];for(const file of photoFiles){const ext=file.name.split('.').pop()||'jpg';const path=`${currentUser.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;const{error:upErr}=await supabase.storage.from('portfolio').upload(path,file,{contentType:file.type});if(!upErr)urls.push(supabase.storage.from('portfolio').getPublicUrl(path).data.publicUrl);}if(urls.length){await supabase.from('profiles').update({portfolio_photos:urls}).eq('id',inserted.id);if(userProfile)userProfile.portfolioPhotos=urls;}} updateProfileBtn(); closeJoin(); showToast("You're on the map! 🎉"); await fetchAndRender(); if(userProfile){map.flyTo({center:[userProfile.lng,userProfile.lat],zoom:12,duration:1200});} }
+async function submitJoin(){ const termsChecked=document.getElementById('jn-terms')?.checked; if(!termsChecked){showToast('Please accept the Terms & Privacy Policy','#ef4444');return;} if(!currentUser){const{data:{session}}=await supabase.auth.getSession();if(session?.user){currentUser=session.user;}else{showToast('Please sign in first','#ef4444');closeJoin();openLoginModal();return;}} const name=document.getElementById('jn-name').value.trim(); const location=document.getElementById('jn-location').value.trim(); const tags=[...document.querySelectorAll('.spec-check:checked')].map(cb=>cb.value); const primaryTag=document.getElementById('jn-primary-tag')?.value||tags[0]; if(!name){showToast('Please enter your name','#ef4444');return;} if(!location){showToast('Please enter your location','#ef4444');return;} if(!tags.length){showToast('Select at least one specialty','#ef4444');return;} const btn=document.getElementById('join-submit'); btn.disabled=true; btn.textContent='Adding you…'; const parts=name.trim().split(/\s+/); const initials=parts.length>=2?(parts[0][0]+parts[parts.length-1][0]).toUpperCase():name.slice(0,2).toUpperCase(); const gearRaw=document.getElementById('jn-gear').value; const gear=gearRaw?gearRaw.split(',').map(g=>g.trim()).filter(Boolean):[]; const portfolioRaw=document.getElementById('jn-portfolio-url')?.value?.trim()||''; const portfolioUrl=portfolioRaw?(portfolioRaw.startsWith('http')?portfolioRaw:`https://${portfolioRaw}`):''; const {lat,lng}=await geocodeLocation(location); let avatarUrl=null; const avatarFile=document.getElementById('jn-avatar-input')?.files?.[0]; if(avatarFile&&currentUser){const{error:upErr}=await supabase.storage.from('avatars').upload(`${currentUser.id}.jpg`,avatarFile,{upsert:true,contentType:avatarFile.type});if(!upErr)avatarUrl=supabase.storage.from('avatars').getPublicUrl(`${currentUser.id}.jpg`).data.publicUrl;} const row={name,initials,primary_tag:primaryTag,lat,lng,location,rating:5.0,review_count:0,tags,bio:document.getElementById('jn-bio').value.trim(),gear,half_day_rate:parseInt(document.getElementById('jn-half').value)||null,full_day_rate:parseInt(document.getElementById('jn-full').value)||null,schedule:[true,true,true,true,true,true,true],is_live:true,show_rates:document.getElementById('jn-show-rates')?.checked||false,portfolio_url:portfolioUrl,user_id:currentUser?.id||null,avatar_url:avatarUrl,instagram_handle:document.getElementById('jn-instagram')?.value?.trim().replace('@','')||null,signup_source:localStorage.getItem('shutter.signup_source')||null}; const {data:inserted,error}=await supabase.from('profiles').insert([row]).select().single(); btn.disabled=false; btn.textContent='Add me to the map'; if(error){console.error(error);showToast('Error — try again','#ef4444');return;} if(inserted)userProfile=toCreator(inserted); const photoFiles=jnPortfolioFiles.filter(Boolean); if(photoFiles.length&&inserted){const urls=[];for(const file of photoFiles){const ext=file.name.split('.').pop()||'jpg';const path=`${currentUser.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;const{error:upErr}=await supabase.storage.from('portfolio').upload(path,file,{contentType:file.type});if(!upErr)urls.push(supabase.storage.from('portfolio').getPublicUrl(path).data.publicUrl);}if(urls.length){await supabase.from('profiles').update({portfolio_photos:urls}).eq('id',inserted.id);if(userProfile)userProfile.portfolioPhotos=urls;}} updateProfileBtn(); closeJoin(); showToast("You're on the map! 🎉"); await fetchAndRender(); if(userProfile){map.flyTo({center:[userProfile.lng,userProfile.lat],zoom:12,duration:1200});} }
 document.getElementById('join-btn').addEventListener('click',()=>{ if(userProfile){openMyProfile();}else if(currentUser){openJoin();}else{openLoginModal();} });
 document.getElementById('join-close').addEventListener('click',closeJoin);
 document.getElementById('jn-show-rates').addEventListener('change',updateJnRatesToggle);
@@ -609,7 +610,7 @@ document.getElementById('confirm-pay-btn').addEventListener('click',async()=>{
   const btn=document.getElementById('confirm-pay-btn');
   const msgEl=document.getElementById('payment-message');
   btn.textContent='Processing…'; btn.disabled=true; msgEl.style.display='none';
-  const{error,paymentIntent}=await stripe.confirmPayment({elements:_stripeElements,confirmParams:{return_url:'https://shutter-app.netlify.app'},redirect:'if_required'});
+  const{error,paymentIntent}=await stripe.confirmPayment({elements:_stripeElements,confirmParams:{return_url:'https://shutterfind.app'},redirect:'if_required'});
   if(error){
     msgEl.textContent=error.message; msgEl.style.display='block';
     btn.textContent=`Confirm & Pay $${_currentBookingData?.clientTotal?.toFixed(2)||''}`;
@@ -893,7 +894,7 @@ document.getElementById('chat-send').addEventListener('click',sendChatMessage);
 document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendChatMessage();});
 document.getElementById('profile-btn').addEventListener('click',()=>{ if(!currentUser){openLoginModal();}else if(!userProfile){openJoin();}else{openMyProfile();} });
 document.getElementById('mp-close').addEventListener('click',closeMyProfile);
-document.getElementById('mp-invite-btn').addEventListener('click',()=>{ const shareUrl='https://shutter-app.netlify.app'; const shareText='Join me on Shutter — the map for outdoor creators around Lake Tahoe 🏔️'; if(navigator.share){navigator.share({title:'Join Shutter',text:shareText,url:shareUrl});}else{navigator.clipboard.writeText(shareUrl).then(()=>showToast('Link copied! 📋'));} });
+document.getElementById('mp-invite-btn').addEventListener('click',()=>{ const shareUrl='https://shutterfind.app'; const shareText='Join me on Shutter — the map for outdoor creators around Lake Tahoe 🏔️'; if(navigator.share){navigator.share({title:'Join Shutter',text:shareText,url:shareUrl});}else{navigator.clipboard.writeText(shareUrl).then(()=>showToast('Link copied! 📋'));} });
 document.getElementById('mp-signout').addEventListener('click',async()=>{ await supabase.auth.signOut(); closeMyProfile(); showToast('Signed out'); });
 document.getElementById('mp-save').addEventListener('click',saveProfile);
 document.getElementById('mp-add-gear').addEventListener('click',addGear);
@@ -1035,4 +1036,247 @@ window.insertTestOffer=async function(){
   console.log('✅ Test offer inserted! booking_id:',booking.id);
   console.log('👉 Now: open Messages → click your own name → you should see the offer card with Accept/Reject buttons.');
 };
+// ─── STRIPE ACCOUNT STATUS POLLING ───────────────────────────────────────────
+let _stripeStatusInterval = null;
+async function pollStripeAccountStatus(){
+  if(!currentUser||!userProfile)return;
+  try{
+    const res=await supabase.functions.invoke('stripe-account-status',{body:{}});
+    if(res.error)return;
+    const{connected,payoutsEnabled,status}=res.data;
+    if(connected){
+      userProfile.stripePayoutsEnabled=payoutsEnabled;
+      userProfile.stripeAccountStatus=status;
+      renderPayoutBanner();
+      if(payoutsEnabled&&_stripeStatusInterval){clearInterval(_stripeStatusInterval);_stripeStatusInterval=null;}
+    }
+  }catch(e){console.error('pollStripeAccountStatus:',e);}
+}
+// ─── CANCEL BOOKING ──────────────────────────────────────────────────────────
+async function cancelBooking(bookingId, reason, note){
+  if(!currentUser)return;
+  const res=await supabase.functions.invoke('cancel-booking',{body:{bookingId,reason,note}});
+  if(res.error){showToast('Cancel failed: '+(res.error.message||'unknown error'),'#ef4444');return;}
+  const d=res.data;
+  if(d.refunded){showToast(`Refund of $${(d.refundAmountCents/100).toFixed(2)} issued`,'#16a34a');}
+  else if(d.rescheduleWindowEndsAt){showToast('Weather cancellation — 14-day reschedule window started','#f59e0b');}
+  else{showToast('Booking cancelled — no refund issued','#6b7280');}
+  closeAllPanels();
+}
+function showCancelModal(bookingId, amountTotal, shootDate){
+  const now=new Date();
+  const sd=new Date(shootDate);
+  const hours=(sd.getTime()-now.getTime())/(1000*3600);
+  const refundPct=hours>=72?1:hours>=24?0.5:0;
+  const refundAmt=(parseFloat(amountTotal)||0)*refundPct;
+  let previewText='';
+  if(refundPct===1)previewText=`100% refund ($${refundAmt.toFixed(2)})`;
+  else if(refundPct===0.5)previewText=`50% refund ($${refundAmt.toFixed(2)}) — platform service fee is non-refundable`;
+  else previewText='No refund issued.';
+  const modal=document.createElement('div');
+  modal.id='cancel-modal';
+  modal.style.cssText='position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML=`<div style="background:#111827;border:1px solid #374151;border-radius:16px;padding:24px;max-width:380px;width:100%;">
+    <div style="font-size:1rem;font-weight:700;margin-bottom:12px;color:#f9fafb;">Cancel Booking</div>
+    <div style="font-size:.85rem;color:#9ca3af;margin-bottom:16px;">Refund preview: <strong style="color:#f9fafb;">${previewText}</strong></div>
+    <button onclick="cancelBooking(${bookingId},'client_cancel');document.getElementById('cancel-modal')?.remove();" style="width:100%;padding:12px;border:none;border-radius:10px;background:#ef4444;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;margin-bottom:8px;">Confirm Cancellation</button>
+    <button onclick="cancelBooking(${bookingId},'weather');document.getElementById('cancel-modal')?.remove();" style="width:100%;padding:12px;border:none;border-radius:10px;background:#f59e0b;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;margin-bottom:8px;">Cancel due to Weather</button>
+    <button onclick="document.getElementById('cancel-modal')?.remove();" style="width:100%;padding:12px;border:none;border-radius:10px;background:#1f2937;color:#9ca3af;font-size:.9rem;font-weight:700;cursor:pointer;">Go Back</button>
+  </div>`;
+  document.body.appendChild(modal);
+}
+window.cancelBooking=cancelBooking;
+window.showCancelModal=showCancelModal;
+// ─── GIG FEED ────────────────────────────────────────────────────────────────
+let gigs=[];
+let _mapLayer=localStorage.getItem('shutter.mapLayer')||'both';
+let gigMarkerMap={};
+
+function gigTypeColor(t){return t==='paid'?'#f97316':t==='collab'?'#3b82f6':'#22c55e';}
+
+function createGigPinEl(gig){
+  const el=document.createElement('div');
+  el.className='shutter-gig-pin';
+  el.style.cssText='width:44px;height:44px;position:relative;cursor:pointer;';
+  const sd=new Date(gig.shootDate);
+  const dateLabel=sd.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const color=gigTypeColor(gig.gigType);
+  const hoursUntil=(sd.getTime()-Date.now())/(1000*3600);
+  const pulse=hoursUntil<48&&hoursUntil>0?'animation:gig-pulse 2s infinite;':'';
+  el.innerHTML=`<div style="width:44px;height:44px;border-radius:8px;background:#1f2937;border:1.5px solid ${color};position:relative;overflow:hidden;${pulse}"><div style="position:absolute;top:0;left:0;right:0;background:${color};color:#fff;font-size:.55rem;font-weight:700;text-align:center;padding:1px 0;line-height:1.3;">${dateLabel}</div><div style="position:absolute;top:0;left:0;bottom:0;width:4px;background:${color};"></div></div>`;
+  el.addEventListener('click',e=>{e.stopPropagation();openGigDetail(gig);});
+  return el;
+}
+
+async function fetchGigs(){
+  const{data,error}=await supabase.from('gigs').select('*').eq('status','open').gt('expires_at',new Date().toISOString());
+  if(error){console.error('Gigs fetch error:',error);return;}
+  gigs=(data||[]).map(toGig);
+  renderGigMarkers();
+}
+
+function renderGigMarkers(){
+  Object.values(gigMarkerMap).forEach(({marker})=>marker.remove());
+  gigMarkerMap={};
+  if(_mapLayer==='creators')return;
+  gigs.forEach(g=>{
+    const el=createGigPinEl(g);
+    const marker=new mapboxgl.Marker({element:el,anchor:'bottom'}).setLngLat([g.lng,g.lat]).addTo(map);
+    gigMarkerMap[g.id]={marker,el};
+  });
+}
+
+function setMapLayer(layer){
+  _mapLayer=layer;
+  localStorage.setItem('shutter.mapLayer',layer);
+  document.querySelectorAll('.layer-chip').forEach(ch=>ch.classList.toggle('active',ch.dataset.layer===layer));
+  if(layer==='gigs'){Object.values(markerMap).forEach(({marker})=>marker.remove());markerMap={};renderGigMarkers();}
+  else if(layer==='creators'){Object.values(gigMarkerMap).forEach(({marker})=>marker.remove());gigMarkerMap={};fetchAndRender();}
+  else{fetchAndRender();renderGigMarkers();}
+}
+window.setMapLayer=setMapLayer;
+
+function openGigDetail(gig){
+  _suppressMapClose=true;requestAnimationFrame(()=>{_suppressMapClose=false;});
+  closeAllPanels();
+  const color=gigTypeColor(gig.gigType);
+  const sd=new Date(gig.shootDate);
+  const dateStr=sd.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  const timeStr=gig.shootStartTime||'';
+  const durStr=gig.durationHours?gig.durationHours+'h':'';
+  const rateStr=gig.gigType==='paid'&&gig.rateAmountCents?`$${(gig.rateAmountCents/100).toFixed(0)} ${gig.rateType||''}`:'';
+  const specChips=(gig.specialties||[]).map(s=>{const m=TAG_META[s];return m?`<span style="font-size:.7rem;padding:3px 9px;border-radius:12px;background:${m.color}18;color:${m.color};border:1px solid ${m.color}40;">${m.label}</span>`:''}).join('');
+  const isOwner=userProfile&&gig.creatorId===userProfile.id;
+  let ctaHtml='';
+  if(isOwner){
+    ctaHtml=`<button onclick="closeGig('${gig.id}')" style="width:100%;padding:12px;border:none;border-radius:10px;background:#ef4444;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;">Close Gig</button>`;
+  }else if(currentUser){
+    ctaHtml=`<button onclick="applyToGig('${gig.id}')" style="width:100%;padding:12px;border:none;border-radius:10px;background:#818cf8;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;">Apply to Gig</button>`;
+  }
+  const sheet=document.createElement('div');
+  sheet.id='gig-detail-sheet';
+  sheet.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:30;background:#111827;border-radius:22px 22px 0 0;border-top:1px solid #1f2937;max-height:70vh;overflow-y:auto;padding:16px 18px calc(16px + env(safe-area-inset-bottom,0px));transform:translateY(0);transition:transform .3s;';
+  sheet.innerHTML=`<div style="width:36px;height:4px;border-radius:2px;background:#374151;margin:0 auto 12px;"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="width:8px;height:8px;border-radius:50%;background:${color};"></div><span style="font-size:.75rem;color:${color};font-weight:600;text-transform:uppercase;">${gig.gigType.replace('_',' ')}</span></div>
+    <div style="font-size:1.05rem;font-weight:700;margin-bottom:4px;color:#f9fafb;">${escapeHtml(gig.title)}</div>
+    <div style="font-size:.8rem;color:#9ca3af;margin-bottom:4px;">${escapeHtml(gig.locationName||'')}</div>
+    <div style="font-size:.8rem;color:#9ca3af;margin-bottom:12px;">${dateStr}${timeStr?' at '+timeStr:''}${durStr?' · '+durStr:''}${rateStr?' · '+rateStr:''}</div>
+    ${specChips?'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">'+specChips+'</div>':''}
+    <div style="font-size:.85rem;color:#d1d5db;line-height:1.55;margin-bottom:12px;">${escapeHtml(gig.description)}</div>
+    <div style="font-size:.75rem;color:#6b7280;margin-bottom:16px;">Spots: ${gig.spotsFilled}/${gig.spotsAvailable}</div>
+    ${ctaHtml}
+    <button onclick="document.getElementById('gig-detail-sheet')?.remove();" style="width:100%;padding:12px;border:none;border-radius:10px;background:#1f2937;color:#9ca3af;font-size:.9rem;font-weight:700;cursor:pointer;margin-top:8px;">Close</button>`;
+  document.querySelectorAll('#gig-detail-sheet').forEach(el=>el.remove());
+  document.body.appendChild(sheet);
+  map.flyTo({center:[gig.lng,gig.lat],zoom:Math.max(map.getZoom(),12),pitch:52,duration:900,offset:[0,-120],essential:true});
+}
+
+async function postGig(){
+  if(!currentUser||!userProfile){showToast('Sign in first','#ef4444');return;}
+  const modal=document.createElement('div');
+  modal.id='post-gig-modal';
+  modal.style.cssText='position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;';
+  modal.innerHTML=`<div style="background:#111827;border:1px solid #374151;border-radius:16px;padding:24px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;">
+    <div style="font-size:1rem;font-weight:700;margin-bottom:16px;color:#f9fafb;">Post a Gig</div>
+    <div style="margin-bottom:12px;"><label style="font-size:.78rem;color:#6b7280;font-weight:600;display:block;margin-bottom:4px;">Type</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:4px;font-size:.85rem;color:#d1d5db;cursor:pointer;"><input type="radio" name="gig-type" value="collab" checked /> Collab</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.85rem;color:#d1d5db;cursor:pointer;"><input type="radio" name="gig-type" value="paid" /> Paid</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.85rem;color:#d1d5db;cursor:pointer;"><input type="radio" name="gig-type" value="looking_for" /> Looking for help</label>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;"><label style="font-size:.78rem;color:#6b7280;font-weight:600;display:block;margin-bottom:4px;">Title *</label><input type="text" id="gig-title" maxlength="120" placeholder="e.g. Sunrise shoot at Emerald Bay" style="width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #374151;border-radius:10px;color:#f9fafb;font-size:.9rem;outline:none;" /></div>
+    <div style="margin-bottom:12px;"><label style="font-size:.78rem;color:#6b7280;font-weight:600;display:block;margin-bottom:4px;">Description</label><textarea id="gig-desc" maxlength="500" rows="3" placeholder="Details about the shoot…" style="width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #374151;border-radius:10px;color:#f9fafb;font-size:.9rem;outline:none;resize:vertical;"></textarea><div id="gig-desc-counter" style="font-size:.7rem;color:#6b7280;text-align:right;margin-top:2px;">0/500</div></div>
+    <div style="margin-bottom:12px;"><label style="font-size:.78rem;color:#6b7280;font-weight:600;display:block;margin-bottom:4px;">Shoot Date *</label><input type="date" id="gig-shoot-date" style="width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #374151;border-radius:10px;color:#f9fafb;font-size:.9rem;outline:none;" /></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div style="flex:1;"><label style="font-size:.78rem;color:#6b7280;font-weight:600;display:block;margin-bottom:4px;">Start Time</label><input type="time" id="gig-start-time" style="width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #374151;border-radius:10px;color:#f9fafb;font-size:.9rem;outline:none;" /></div>
+      <div style="flex:1;"><label style="font-size:.78rem;color:#6b7280;font-weight:600;display:block;margin-bottom:4px;">Duration (hrs)</label><input type="number" id="gig-duration" min="1" max="24" placeholder="4" style="width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #374151;border-radius:10px;color:#f9fafb;font-size:.9rem;outline:none;" /></div>
+    </div>
+    <div style="margin-bottom:12px;"><label style="font-size:.78rem;color:#6b7280;font-weight:600;display:block;margin-bottom:4px;">Spots Available</label><input type="number" id="gig-spots" min="1" max="20" value="1" style="width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #374151;border-radius:10px;color:#f9fafb;font-size:.9rem;outline:none;" /></div>
+    <div id="gig-paid-fields" style="display:none;margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;"><label style="font-size:.78rem;color:#6b7280;font-weight:600;display:block;margin-bottom:4px;">Rate Type</label><select id="gig-rate-type" style="width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #374151;border-radius:10px;color:#f9fafb;font-size:.9rem;outline:none;"><option value="hourly">Hourly</option><option value="half_day">Half Day</option><option value="full_day">Full Day</option><option value="negotiable">Negotiable</option></select></div>
+        <div style="flex:1;"><label style="font-size:.78rem;color:#6b7280;font-weight:600;display:block;margin-bottom:4px;">Rate ($)</label><input type="number" id="gig-rate-amount" min="1" placeholder="150" style="width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #374151;border-radius:10px;color:#f9fafb;font-size:.9rem;outline:none;" /></div>
+      </div>
+    </div>
+    <button id="gig-submit-btn" style="width:100%;padding:12px;border:none;border-radius:10px;background:#818cf8;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;margin-top:4px;">Post Gig</button>
+    <button onclick="document.getElementById('post-gig-modal')?.remove();" style="width:100%;padding:12px;border:none;border-radius:10px;background:#1f2937;color:#9ca3af;font-size:.9rem;font-weight:700;cursor:pointer;margin-top:8px;">Cancel</button>
+  </div>`;
+  document.body.appendChild(modal);
+  // Show/hide paid fields based on type selection
+  modal.querySelectorAll('input[name="gig-type"]').forEach(r=>r.addEventListener('change',e=>{document.getElementById('gig-paid-fields').style.display=e.target.value==='paid'?'':'none';}));
+  // Desc counter
+  document.getElementById('gig-desc').addEventListener('input',e=>{document.getElementById('gig-desc-counter').textContent=`${e.target.value.length}/500`;});
+  // Submit handler
+  document.getElementById('gig-submit-btn').addEventListener('click',async()=>{
+    const title=document.getElementById('gig-title').value.trim();
+    const shootDate=document.getElementById('gig-shoot-date').value;
+    if(!title){showToast('Title is required','#ef4444');return;}
+    if(!shootDate){showToast('Shoot date is required','#ef4444');return;}
+    const gigType=modal.querySelector('input[name="gig-type"]:checked')?.value||'collab';
+    const description=document.getElementById('gig-desc').value.trim();
+    const startTime=document.getElementById('gig-start-time').value||null;
+    const durationHours=parseFloat(document.getElementById('gig-duration').value)||null;
+    const spotsAvailable=parseInt(document.getElementById('gig-spots').value)||1;
+    const rateType=gigType==='paid'?document.getElementById('gig-rate-type').value:null;
+    const rateAmountCents=gigType==='paid'?Math.round((parseFloat(document.getElementById('gig-rate-amount').value)||0)*100):null;
+    const sd=new Date(shootDate);
+    const expiresAt=new Date(sd.getTime()+24*3600*1000).toISOString();
+    const btn=document.getElementById('gig-submit-btn');
+    btn.textContent='Posting…';btn.disabled=true;
+    const{error}=await supabase.from('gigs').insert([{
+      creator_id:userProfile.id,
+      title,description,gig_type:gigType,
+      specialties:userProfile.tags||[],
+      lat:userProfile.lat,lng:userProfile.lng,
+      location_name:userProfile.location||'',
+      shoot_date:shootDate,
+      shoot_start_time:startTime,
+      duration_hours:durationHours,
+      rate_type:rateType,rate_amount_cents:rateAmountCents,
+      spots_available:spotsAvailable,
+      status:'open',expires_at:expiresAt
+    }]);
+    if(error){showToast('Failed to post gig','#ef4444');btn.textContent='Post Gig';btn.disabled=false;return;}
+    document.getElementById('post-gig-modal')?.remove();
+    showToast('Gig posted! 🎉','#16a34a');
+    fetchGigs();
+  });
+}
+window.postGig=postGig;
+
+async function applyToGig(gigId){
+  if(!currentUser||!userProfile){showToast('Sign in first','#ef4444');return;}
+  const{error}=await supabase.from('gig_applications').insert([{gig_id:gigId,applicant_id:userProfile.id,status:'pending'}]);
+  if(error){if(error.code==='23505'){showToast('Already applied!','#f59e0b');}else{showToast('Apply failed','#ef4444');}return;}
+  const gig=gigs.find(g=>g.id===gigId);
+  if(gig){
+    await supabase.from('messages').insert([{sender_id:currentUser.id,recipient_profile_id:gig.creatorId,body:`Applied to your gig: ${gig.title}`,is_rate_proposal:false,read:false}]).then(()=>{},()=>{});
+  }
+  document.getElementById('gig-detail-sheet')?.remove();
+  showToast('Application sent!','#16a34a');
+}
+window.applyToGig=applyToGig;
+
+async function closeGig(gigId){
+  const{error}=await supabase.from('gigs').update({status:'cancelled'}).eq('id',gigId);
+  if(error){showToast('Failed to close gig','#ef4444');return;}
+  document.getElementById('gig-detail-sheet')?.remove();
+  showToast('Gig closed','#6b7280');
+  fetchGigs();
+}
+window.closeGig=closeGig;
+
+async function acceptApplication(appId,gigId){
+  await supabase.from('gig_applications').update({status:'accepted'}).eq('id',appId);
+  showToast('Application accepted!','#16a34a');
+}
+async function declineApplication(appId){
+  await supabase.from('gig_applications').update({status:'declined'}).eq('id',appId);
+  showToast('Application declined','#6b7280');
+}
+window.acceptApplication=acceptApplication;
+window.declineApplication=declineApplication;
+// ─── SIGNUP SOURCE ATTRIBUTION ───────────────────────────────────────────────
+(function(){const params=new URLSearchParams(location.search);const src=params.get('src');if(src&&!localStorage.getItem('shutter.signup_source')){localStorage.setItem('shutter.signup_source',src.slice(0,64));}})();
 initAuth();

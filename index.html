@@ -99,6 +99,18 @@
       background: rgba(129,140,248,.15); border-color: #818cf8; color: #818cf8;
     }
 
+    /* ─── GIG PIN PULSE ────────────────────────────────── */
+    @keyframes gig-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(249,115,22,.6); }
+      70% { box-shadow: 0 0 0 8px rgba(249,115,22,0); }
+      100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+    }
+    .layer-chip.active {
+      background: rgba(129,140,248,.15) !important;
+      border-color: #818cf8 !important;
+      color: #818cf8 !important;
+    }
+
     /* ─── OVERLAY ─────────────────────────────────────── */
     #overlay {
       position: fixed; inset: 0; z-index: 19;
@@ -922,6 +934,13 @@
   <button class="hdr-btn" id="profile-btn">👤</button>
 </div>
 
+<!-- ══ MAP LAYER TOGGLE ═══════════════════════════════════ -->
+<div id="layer-bar" style="position:absolute;z-index:10;top:calc(62px + env(safe-area-inset-top, 0px));right:14px;display:flex;gap:5px;">
+  <div class="layer-chip active" data-layer="both" onclick="setMapLayer('both')" style="padding:5px 10px;border-radius:14px;font-size:.68rem;font-weight:700;cursor:pointer;background:rgba(129,140,248,.15);border:1px solid #818cf8;color:#818cf8;user-select:none;">Both</div>
+  <div class="layer-chip" data-layer="creators" onclick="setMapLayer('creators')" style="padding:5px 10px;border-radius:14px;font-size:.68rem;font-weight:700;cursor:pointer;background:rgba(17,24,39,.88);border:1px solid #374151;color:#9ca3af;user-select:none;">Creators</div>
+  <div class="layer-chip" data-layer="gigs" onclick="setMapLayer('gigs')" style="padding:5px 10px;border-radius:14px;font-size:.68rem;font-weight:700;cursor:pointer;background:rgba(17,24,39,.88);border:1px solid #374151;color:#9ca3af;user-select:none;">Gigs</div>
+</div>
+
 <!-- ══ FILTER BAR ══════════════════════════════════════ -->
 <div id="filter-bar">
   <div class="filter-chip active" data-filter="all">All</div>
@@ -1277,6 +1296,7 @@
       </div>
       <!-- save -->
       <button id="mp-save">Save Profile</button>
+      <button id="mp-post-gig" onclick="postGig()" style="width:100%;padding:13px;border:1px solid rgba(129,140,248,.35);border-radius:12px;background:rgba(129,140,248,.08);color:#818cf8;font-size:.92rem;font-weight:600;cursor:pointer;margin-top:8px;transition:color .15s,border-color .15s;">+ Post a Gig</button>
       <button id="mp-set-location" style="width:100%;padding:13px;border:1px solid #374151;border-radius:12px;background:transparent;color:#9ca3af;font-size:.92rem;font-weight:600;cursor:pointer;margin-top:8px;transition:color .15s,border-color .15s;">📍 Set my location on map</button>
       <button id="mp-signout" style="width:100%;padding:13px;border:1px solid #374151;border-radius:12px;background:transparent;color:#6b7280;font-size:.92rem;font-weight:600;cursor:pointer;margin-top:8px;transition:color .15s,border-color .15s;">Sign out</button>
     </div>
@@ -1455,7 +1475,7 @@
   <img id="photo-lightbox-img" src="" alt="Portfolio photo" />
 </div>
 
-<script type="module" src="src/app.js?v=83"></script>
+<script type="module" src="src/app.js?v=84"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>

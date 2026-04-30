@@ -1,0 +1,6 @@
+# Redirect old Netlify subdomain to new custom domain
+[[redirects]]
+  from = "https://shutter-app.netlify.app/*"
+  to = "https://shutterfind.app/:splat"
+  status = 301
+  force = true
