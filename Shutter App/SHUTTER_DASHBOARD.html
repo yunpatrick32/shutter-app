@@ -341,11 +341,11 @@ const DEFAULT_TASKS = {
         sections: [
           { label: 'Steps', type: 'steps', steps: [
             'Go to resend.com → Domains → Add Domain',
-            'Enter your domain (once you have one — currently shutter-app.netlify.app doesn\'t support custom DNS)',
-            'Add the DNS TXT and MX records Resend gives you to your domain registrar',
-            'Once verified, update the Edge Function (notify-message/index.ts) to send from hello@yourdomain.com instead of the Resend default'
+            'Enter shutterfind.app (registered Apr 29, 2026 — pointed at Cloudflare Registrar)',
+            'Add the DNS TXT and CNAME records Resend gives you at the DNS host (Netlify DNS if nameservers were switched, otherwise Cloudflare)',
+            'Once verified, update the Edge Function (notify-message/index.ts) to send from hello@shutterfind.app instead of onboarding@resend.dev'
           ]},
-          { label: 'Note', type: 'info', content: 'This is blocked until Legal finalizes the brand name — you\'ll want the domain to match the brand (e.g. shuttercrew.com or pinshot.co). Register the domain at Namecheap or Cloudflare after the name is decided.' }
+          { label: 'Note', type: 'info', content: 'Domain is shutterfind.app (chosen Apr 29, 2026 — Patrick picked .app over .com). Same word-mark "SHUTTER FIND," no new trademark exposure. Cleared by Legal Apr 21 with .app TLD specifically flagged for Apr 28 Legal follow-up but no blocker.' }
         ]
       }
     }
@@ -529,8 +529,8 @@ Signature: _______________________ Date: _____________` },
             'Budget: Start at $5-10/day for 2 weeks to test',
             'Creative: Use a screen recording of the map with creator pins — show the "Available Now" feature'
           ]},
-          { label: 'Ad copy — creator recruitment', type: 'copy', copyTitle: 'Meta ad copy — recruit creators', copyText: "Are you a snowboard filmer, ski photographer, or drone operator near Tahoe?\n\nShutter puts you on the map — literally. Clients in your area can find you, check your availability, and book you directly.\n\nNo agency. No commission (for now). Just you and the mountain.\n\nJoin free → shutter-app.netlify.app\nHit Join Map. Sign in with Google. You're live." },
-          { label: 'Ad copy — client side', type: 'copy', copyTitle: 'Meta ad copy — attract clients', copyText: "Planning a ski trip to Tahoe? Don't show up without a filmer.\n\nShutter lets you find and book local snowboard filmers, ski photographers, and drone operators in minutes.\n\nOpen the map. See who's available. Book them.\n\n→ shutter-app.netlify.app" }
+          { label: 'Ad copy — creator recruitment', type: 'copy', copyTitle: 'Meta ad copy — recruit creators', copyText: "Are you a snowboard filmer, ski photographer, or drone operator near Tahoe?\n\nShutter puts you on the map — literally. Clients in your area can find you, check your availability, and book you directly.\n\nNo agency. No commission (for now). Just you and the mountain.\n\nJoin free → shutterfind.app\nHit Join Map. Sign in with Google. You're live." },
+          { label: 'Ad copy — client side', type: 'copy', copyTitle: 'Meta ad copy — attract clients', copyText: "Planning a ski trip to Tahoe? Don't show up without a filmer.\n\nShutter lets you find and book local snowboard filmers, ski photographers, and drone operators in minutes.\n\nOpen the map. See who's available. Book them.\n\n→ shutterfind.app" }
         ]
       }
     },
@@ -539,10 +539,10 @@ Signature: _______________________ Date: _____________` },
       dropdown: {
         sections: [
           { label: 'Strategy', type: 'info', content: 'Start with your personal network — people who already trust you. Then expand to Instagram DMs targeting Tahoe-area creators. Be specific about what\'s in it for them: free exposure, direct bookings, no agency cut.' },
-          { label: 'DM — casual (for close friends)', type: 'copy', copyTitle: 'DM — casual friend', copyText: "Yo — I built this app called Shutter for filmers and photographers around Tahoe. It's a map where people can find and book us directly. You'd be one of the first real people on it. Just go to shutter-app.netlify.app, hit Join Map, sign in with Google, and fill out your profile. Takes like 2 min and your pin shows up on the map." },
-          { label: 'DM — semi-formal (Instagram outreach)', type: 'copy', copyTitle: 'DM — Instagram outreach', copyText: "Hey [name]! Saw your work from [location/shoot] — sick stuff. I'm building a platform called Shutter for outdoor sports creatives around Tahoe. It's a map where clients can find filmers, photographers, and drone operators like you and book directly — no middleman. Free to join right now while we're getting started. Just go to shutter-app.netlify.app, tap Join Map, sign in with Google or your email, and you're on the map." },
-          { label: 'DM — snowboard/ski community angle', type: 'copy', copyTitle: 'DM — snow community angle', copyText: "What's up [name] — built something for the Tahoe filmer/photo community and want to get you on it early. It's called Shutter — a map where riders and resorts can find and book local filmers, photogs, and drone ops. You set your rates, your availability, clients come to you. Zero commission right now while we grow. Go to shutter-app.netlify.app, hit Join Map, sign in with Google and you're live on the map in minutes. Stoked to have you on it early." },
-          { label: 'Text to send a friend', type: 'copy', copyTitle: 'iMessage to a friend', copyText: "Hey — trying to get 25 real creators on my app before I launch properly. It's a map where people find and book filmers/photographers around Tahoe. Can you join and share it with anyone you know who shoots? Just go to shutter-app.netlify.app → hit Join Map → sign in with Google. Takes 2 min and your pin shows up on the map 🙏" }
+          { label: 'DM — casual (for close friends)', type: 'copy', copyTitle: 'DM — casual friend', copyText: "Yo — I built this app called Shutter for filmers and photographers around Tahoe. It's a map where people can find and book us directly. You'd be one of the first real people on it. Just go to shutterfind.app, hit Join Map, sign in with Google, and fill out your profile. Takes like 2 min and your pin shows up on the map." },
+          { label: 'DM — semi-formal (Instagram outreach)', type: 'copy', copyTitle: 'DM — Instagram outreach', copyText: "Hey [name]! Saw your work from [location/shoot] — sick stuff. I'm building a platform called Shutter for outdoor sports creatives around Tahoe. It's a map where clients can find filmers, photographers, and drone operators like you and book directly — no middleman. Free to join right now while we're getting started. Just go to shutterfind.app, tap Join Map, sign in with Google or your email, and you're on the map." },
+          { label: 'DM — snowboard/ski community angle', type: 'copy', copyTitle: 'DM — snow community angle', copyText: "What's up [name] — built something for the Tahoe filmer/photo community and want to get you on it early. It's called Shutter — a map where riders and resorts can find and book local filmers, photogs, and drone ops. You set your rates, your availability, clients come to you. Zero commission right now while we grow. Go to shutterfind.app, hit Join Map, sign in with Google and you're live on the map in minutes. Stoked to have you on it early." },
+          { label: 'Text to send a friend', type: 'copy', copyTitle: 'iMessage to a friend', copyText: "Hey — trying to get 25 real creators on my app before I launch properly. It's a map where people find and book filmers/photographers around Tahoe. Can you join and share it with anyone you know who shoots? Just go to shutterfind.app → hit Join Map → sign in with Google. Takes 2 min and your pin shows up on the map 🙏" }
         ]
       }
     },
