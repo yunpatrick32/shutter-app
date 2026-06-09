@@ -27,7 +27,7 @@ Single-selects auto-advance on tap (no Next button needed). The one multi-select
 |---|---------------|----------|-------|----------|
 | 1 | `1 of 5` | "What's your main craft?" | **Dropdown / tap-list, single-select** — full role list (below) | `profiles.specialty` (primary role) + seeds `specialties[]` |
 | 2 | `2 of 5` | "Where are you based?" | Single-select tap-list — Tahoe-area towns + "Somewhere else" (reveals a text field) | `profiles.city` (drives map pin) |
-| 3 | `3 of 5` | "What's your typical day rate?" | Single-select bands + **"Show my rate on my profile" toggle** | `profiles.rate_band` + `profiles.show_rates` |
+| 3 | `3 of 5` | "What are your rates?" | **Half-day + full-day rate inputs** + **"Show my rates on my profile" toggle** | `profiles.half_day_rate` + `profiles.full_day_rate` + `profiles.show_rates` |
 | 4 | `4 of 5 · Almost done!` | "What else do you bring to a shoot?" | **Multi-select** chips (gear/skills) → Next | `profiles.specialties[]` (merged with Q1) |
 | 5 | `5 of 5` | "Where can clients see your work?" | Text — Instagram handle **or** portfolio URL → Next | `profiles.handle` / `profiles.portfolio_url` |
 
@@ -41,10 +41,10 @@ Photographer, Videographer, Drone Op, Film Photographer, B-Roll Cam, DP, 1st AC,
 ### Q2 city options
 Truckee · Tahoe City · South Lake Tahoe · Incline Village · Kings Beach · Reno · **Somewhere else** (→ free-text). Tahoe-first matches the launch beachhead; "Somewhere else" keeps the door open for the mountain/surf-town expansion without locking copy to Tahoe-only.
 
-### Q3 rate bands
-Under $300/day · $300–600 · $600–1,000 · $1,000+ · "Depends on the job" (stored as `null` band + flag).
+### Q3 rates
+Two simple numeric inputs on one screen — **Half-day rate** and **Full-day rate** (USD, whole dollars, `$` prefix; either may be left blank). Keep it to just these two for now; tiered bands / hourly can come later.
 
-Below the bands, a **"Show my rate on my profile"** toggle (`show_rates`, default **on**). When off, the band is still saved to their profile (so search/sort can use it internally) but the public profile shows "Rate on request" instead of the number. "Depends on the job" implies the same client-facing copy. Editable later in My Profile.
+Below them, a **"Show my rates on my profile"** toggle (`show_rates`, default **on**). When off, the rates are still saved to their profile (so search/sort can use them internally) but the public profile shows "Rates on request" instead of the numbers. Editable later in My Profile.
 
 ### Q4 multi-select chips
 Drone · Editing · Color · Sound · Lighting/Gaffer · Photo · Video · Styling · FAA Part 107 · Owns own gear · Will travel. (Tune freely — these map to `specialties[]` plus a couple of boolean-ish tags.)
@@ -62,7 +62,8 @@ create table public.onboarding_responses (
   session_id    text not null,            -- client-generated, stored in localStorage
   primary_role  text,                     -- Q1
   city          text,                     -- Q2
-  rate_band     text,                     -- Q3 (null if "depends")
+  half_day_rate int,                      -- Q3
+  full_day_rate int,                      -- Q3
   show_rates    boolean default true,     -- Q3 toggle: public rate visibility
   specialties   text[] default '{}',      -- Q1 + Q4 merged
   contact       text,                     -- Q5 (handle or URL)
@@ -85,11 +86,11 @@ RLS = public insert/update only, no public read (same posture as `quiz_submissio
 1. On questionnaire load: generate `session_id` (uuid) → `localStorage['shutter.onboarding']`; read `?src=` / `utm_source` into `source`.
 2. After each answer: upsert the row (set the field + `step_reached`, `updated_at`). This is what gives Marketing the funnel ("70% reach Q3, 40% finish").
 3. On the claim screen: set `completed = true`.
-4. On account creation: read the localStorage answers → **write them into the `profiles` INSERT payload** (specialty, specialties[], city, rate_band, show_rates, handle/portfolio, `signup_source`) → set `onboarding_responses.claimed_by = auth.uid()`.
+4. On account creation: read the localStorage answers → **write them into the `profiles` INSERT payload** (specialty, specialties[], city, half_day_rate, full_day_rate, show_rates, handle/portfolio, `signup_source`) → set `onboarding_responses.claimed_by = auth.uid()`.
 5. They land in My Profile, prefilled, every field editable.
 
 ### `profiles` columns this assumes
-`specialty text`, `specialties text[]`, `city text`, `handle text`, plus **NEW**: `rate_band text`, `show_rates boolean default true`, and `portfolio_url text` (add via migration if not present). Per the codebase rule, **every new column must also be added to `toCreator(r)`** so the mapper picks it up (e.g. `rateBand`, `showRates`, `portfolioUrl`). The public profile / map card reads `showRates` to decide whether to render the rate band or "Rate on request."
+`specialty text`, `specialties text[]`, `city text`, `handle text`, plus **NEW**: `half_day_rate int`, `full_day_rate int`, `show_rates boolean default true`, and `portfolio_url text` (add via migration if not present). Per the codebase rule, **every new column must also be added to `toCreator(r)`** so the mapper picks it up (e.g. `halfDayRate`, `fullDayRate`, `showRates`, `portfolioUrl`). The public profile / map card reads `showRates` to decide whether to render the rates or "Rates on request."
 
 ---
 

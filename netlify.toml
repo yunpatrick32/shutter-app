@@ -4,3 +4,9 @@
   to = "https://shutterfind.app/:splat"
   status = 301
   force = true
+
+# SPA fallback — serve index.html for all routes (enables /start?src=ig_ad)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

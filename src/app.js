@@ -1,6 +1,6 @@
 import { TAG_META } from './data.js?v=14';
 const supabase = window.supabase.createClient('https://panktkmwgcttjpebucqy.supabase.co', 'sb_publishable_tuwGL-r9XQO7mlC6FPOVdQ_35XHkEa1');
-function toCreator(r){ return { id:r.id, userId:r.user_id, name:r.name, initials:r.initials, primaryTag:r.primary_tag, lat:r.lat, lng:r.lng, location:r.location, rating:r.rating, reviewCount:r.review_count, tags:r.tags||[], bio:r.bio, gear:r.gear||[], rates:{halfDay:r.half_day_rate,fullDay:r.full_day_rate}, schedule:r.schedule||[true,true,true,true,true,true,true], isLive:r.is_live, showRates:r.show_rates, avatarUrl:r.avatar_url||null, instagramHandle:r.instagram_handle||null, availableNow:r.available_now||false, availableUntil:r.available_until||null, viewCount:r.view_count||0, portfolioPhotos:r.portfolio_photos||[], stripeAccountId:r.stripe_account_id||null, stripeOnboarded:r.stripe_onboarded||false, stripePayoutsEnabled:r.stripe_payouts_enabled||false, stripeAccountStatus:r.stripe_account_status||'pending_onboarding', lastPayoutAt:r.last_payout_at||null, signupSource:r.signup_source||null }; }
+function toCreator(r){ return { id:r.id, userId:r.user_id, name:r.name, initials:r.initials, primaryTag:r.primary_tag, lat:r.lat, lng:r.lng, location:r.location, rating:r.rating, reviewCount:r.review_count, tags:r.tags||[], bio:r.bio, gear:r.gear||[], rates:{halfDay:r.half_day_rate,fullDay:r.full_day_rate}, halfDayRate:r.half_day_rate||null, fullDayRate:r.full_day_rate||null, schedule:r.schedule||[true,true,true,true,true,true,true], isLive:r.is_live, showRates:r.show_rates!==false, portfolioUrl:r.portfolio_url||null, avatarUrl:r.avatar_url||null, instagramHandle:r.instagram_handle||null, availableNow:r.available_now||false, availableUntil:r.available_until||null, viewCount:r.view_count||0, portfolioPhotos:r.portfolio_photos||[], stripeAccountId:r.stripe_account_id||null, stripeOnboarded:r.stripe_onboarded||false, stripePayoutsEnabled:r.stripe_payouts_enabled||false, stripeAccountStatus:r.stripe_account_status||'pending_onboarding', lastPayoutAt:r.last_payout_at||null, signupSource:r.signup_source||null }; }
 function toGig(r){ return { id:r.id, creatorId:r.creator_id, title:r.title, description:r.description||'', gigType:r.gig_type, specialties:r.specialties||[], lat:r.lat, lng:r.lng, locationName:r.location_name||'', shootDate:r.shoot_date, shootStartTime:r.shoot_start_time||null, durationHours:r.duration_hours||null, rateType:r.rate_type||null, rateAmountCents:r.rate_amount_cents||null, spotsAvailable:r.spots_available||1, spotsFilled:r.spots_filled||0, status:r.status||'open', expiresAt:r.expires_at, createdAt:r.created_at, updatedAt:r.updated_at }; }
 function isAvailNow(c){ return !!(c.availableNow && c.availableUntil && new Date(c.availableUntil)>new Date()); }
 let creators = [];
@@ -48,7 +48,7 @@ async function handleSignIn(user){ currentUser=user; const {data}=await supabase
     showToast('Payout account connected! 🎉','#16a34a');
     pollStripeAccountStatus();
   }
-  updateProfileBtn(); updateNotifBadge(); if(!userProfile){ setTimeout(()=>{ closeLoginModal(); openJoin(); },500); } else { closeLoginModal(); } }
+  updateProfileBtn(); updateNotifBadge(); if(localStorage.getItem('shutter._ob_claim')==='1'){localStorage.removeItem('shutter._ob_claim');closeLoginModal();await obApplyClaimPrefill(user);}else if(!userProfile){setTimeout(()=>{closeLoginModal();openJoin();},500);}else{closeLoginModal();} }
 function updateProfileBtn(){ const btn=document.getElementById('profile-btn'); if(currentUser&&userProfile?.avatarUrl){ btn.innerHTML=`<img src="${userProfile.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" />`; btn.style.background='transparent'; btn.style.borderColor='rgba(129,140,248,.5)'; btn.style.color=''; btn.style.padding='0'; btn.style.overflow='hidden'; }else if(currentUser){ btn.innerHTML='👤'; btn.style.background='rgba(129,140,248,.15)'; btn.style.borderColor='rgba(129,140,248,.4)'; btn.style.color='#818cf8'; btn.style.padding=''; btn.style.overflow=''; }else{ btn.innerHTML='👤'; btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; btn.style.padding=''; btn.style.overflow=''; } const joinBtn=document.getElementById('join-btn'); if(userProfile){joinBtn.style.display='none';}else{joinBtn.style.display='';} }
 function openLoginModal(){ document.getElementById('login-email').value=''; document.getElementById('login-sent').style.display='none'; const btn=document.getElementById('login-send');btn.disabled=false;btn.textContent='Send me a login link'; document.getElementById('login-modal').classList.add('open'); }
 function closeLoginModal(){ document.getElementById('login-modal').classList.remove('open'); }
@@ -1279,4 +1279,143 @@ window.acceptApplication=acceptApplication;
 window.declineApplication=declineApplication;
 // ─── SIGNUP SOURCE ATTRIBUTION ───────────────────────────────────────────────
 (function(){const params=new URLSearchParams(location.search);const src=params.get('src');if(src&&!localStorage.getItem('shutter.signup_source')){localStorage.setItem('shutter.signup_source',src.slice(0,64));}})();
+// ─── ONBOARDING QUESTIONNAIRE ────────────────────────────────────────────────
+const OB_KEY='shutter.onboarding';
+let _ob=null;
+const OB_ROLES=[{key:'photo',label:'📷 Photographer'},{key:'video',label:'🎬 Videographer'},{key:'drone',label:'🚁 Drone Op'},{key:'film-photo',label:'🎞 Film Photo'},{key:'director',label:'🎬 Director'},{key:'dp',label:'🎥 DP'},{key:'1ac',label:'🎦 1st AC'},{key:'2ac',label:'🎦 2nd AC'},{key:'editor',label:'✂️ Editor'},{key:'colorist',label:'🎨 Colorist'},{key:'motion',label:'💫 Motion Graphics'},{key:'sound',label:'🎵 Sound'},{key:'gaffer',label:'💡 Gaffer'},{key:'stylist',label:'👗 Stylist'},{key:'model',label:'✨ Model'},{key:'snowboard',label:'🏂 Snowboard'},{key:'ski',label:'⛷️ Ski'},{key:'off-road',label:'🔥 Off-Road'},{key:'producer',label:'🎙 Producer'},{key:'ad',label:'📋 AD'},{key:'pa',label:'🏃 PA'},{key:'broll',label:'📹 B-Roll Cam'}];
+const OB_CITIES=['Truckee','Tahoe City','South Lake Tahoe','Incline Village','Kings Beach','Reno','Somewhere else'];
+const OB_SPECS=['Drone','Editing','Color','Sound','Lighting/Gaffer','Photo','Video','Styling','FAA Part 107','Owns own gear','Will travel'];
+function _obGenId(){return'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
+function obInit(){
+  const isStart=window.location.pathname==='/start'||new URLSearchParams(location.search).get('ob')==='1';
+  if(!isStart)return;
+  const el=document.getElementById('ob-overlay');if(!el)return;
+  let stored=null;try{stored=JSON.parse(localStorage.getItem(OB_KEY)||'null');}catch(e){}
+  const params=new URLSearchParams(location.search);
+  const source=params.get('src')||params.get('utm_source')||stored?.source||'';
+  if(stored?.sessionId){_ob=stored;_ob.source=source||_ob.source||'';}
+  else{_ob={step:1,sessionId:_obGenId(),source,data:{primaryRole:null,city:null,halfDayRate:null,fullDayRate:null,showRates:true,specialties:[],contact:''}};}
+  history.replaceState({},'','/start');
+  el.classList.add('active');
+  document.body.style.overflow='hidden';
+  obRenderStep(_ob.step);
+}
+function obSave(){if(!_ob)return;try{localStorage.setItem(OB_KEY,JSON.stringify(_ob));}catch(e){}}
+async function obUpsert(extra){
+  if(!_ob)return;
+  const row={session_id:_ob.sessionId,source:_ob.source||null,primary_role:_ob.data.primaryRole||null,city:_ob.data.city||null,half_day_rate:_ob.data.halfDayRate||null,full_day_rate:_ob.data.fullDayRate||null,show_rates:_ob.data.showRates,specialties:_ob.data.specialties||[],contact:_ob.data.contact||null,step_reached:_ob.step,...(extra||{})};
+  await supabase.from('onboarding_responses').upsert([row],{onConflict:'session_id'}).then(()=>{},e=>console.warn('[ob upsert]',e));
+}
+function obRenderStep(step){
+  if(!_ob)return;
+  _ob.step=step;obSave();
+  const fill=document.getElementById('ob-progress-fill');const label=document.getElementById('ob-step-label');
+  if(fill)fill.style.width=(step<=5?(step/5*100):100)+'%';
+  const stepLabels=['1 of 5','2 of 5','3 of 5','4 of 5 · Almost done!','5 of 5',''];
+  if(label)label.textContent=stepLabels[step-1]||'';
+  const backBtn=document.getElementById('ob-back-btn');const nextBtn=document.getElementById('ob-next-btn');
+  if(backBtn)backBtn.style.display=(step>1&&step<=5)?'':'none';
+  if(nextBtn)nextBtn.style.display=(step>=3&&step<=5)?'':'none';
+  const slide=document.getElementById('ob-slide');if(!slide)return;
+  if(step===1)obRenderQ1(slide);
+  else if(step===2)obRenderQ2(slide);
+  else if(step===3)obRenderQ3(slide);
+  else if(step===4)obRenderQ4(slide);
+  else if(step===5)obRenderQ5(slide);
+  else obRenderClaim(slide);
+}
+function obRenderQ1(slide){
+  slide.innerHTML=`<div class="ob-question">What's your main craft?</div><div class="ob-option-grid">${OB_ROLES.map(r=>`<button class="ob-option-btn${_ob.data.primaryRole===r.key?' selected':''}" onclick="obSelectRole('${r.key}')">${escapeHtml(r.label)}</button>`).join('')}</div>`;
+}
+function obSelectRole(key){
+  _ob.data.primaryRole=key;
+  if(!_ob.data.specialties.includes(key))_ob.data.specialties=[key,..._ob.data.specialties];
+  obSave();obUpsert();obRenderStep(2);
+}
+window.obSelectRole=obSelectRole;
+function obRenderQ2(slide){
+  const custom=_ob.data.city==='Somewhere else';
+  slide.innerHTML=`<div class="ob-question">Where are you based?</div><div class="ob-option-list">${OB_CITIES.map(c=>`<button class="ob-option-btn wide${_ob.data.city===c?' selected':''}" onclick="obSelectCity('${c.replace(/'/g,"\\'")}')"><span>${escapeHtml(c)}</span>${_ob.data.city===c?'<span class="ob-check">✓</span>':''}</button>`).join('')}</div><div id="ob-city-custom" style="display:${custom?'block':'none'};margin-top:12px;"><input id="ob-city-input" class="ob-text-input" placeholder="Enter your city…" value="${escapeHtml(_ob.data.cityCustom||'')}" /><button class="ob-auth-btn" style="margin-top:10px;" onclick="obCityNext()">Continue →</button></div>`;
+  if(custom)setTimeout(()=>document.getElementById('ob-city-input')?.focus(),50);
+}
+function obSelectCity(city){
+  if(city==='Somewhere else'){_ob.data.city='Somewhere else';obSave();obRenderQ2(document.getElementById('ob-slide'));return;}
+  _ob.data.city=city;obSave();obUpsert();obRenderStep(3);
+}
+window.obSelectCity=obSelectCity;
+function obCityNext(){
+  const val=document.getElementById('ob-city-input')?.value?.trim()||'';
+  if(!val){showToast('Enter your city','#ef4444');return;}
+  _ob.data.city=val;_ob.data.cityCustom=val;obSave();obUpsert();obRenderStep(3);
+}
+window.obCityNext=obCityNext;
+function obRenderQ3(slide){
+  slide.innerHTML=`<div class="ob-question">What are your rates?</div><div class="ob-rate-group"><label class="ob-rate-field"><span class="ob-rate-label">Half-day rate</span><div class="ob-rate-input-wrap"><span class="ob-rate-prefix">$</span><input id="ob-half-day" class="ob-text-input ob-rate-input" type="number" inputmode="numeric" placeholder="e.g. 400" value="${_ob.data.halfDayRate||''}" /></div></label><label class="ob-rate-field"><span class="ob-rate-label">Full-day rate</span><div class="ob-rate-input-wrap"><span class="ob-rate-prefix">$</span><input id="ob-full-day" class="ob-text-input ob-rate-input" type="number" inputmode="numeric" placeholder="e.g. 700" value="${_ob.data.fullDayRate||''}" /></div></label></div><label class="ob-toggle-row"><span class="ob-toggle-label">Show my rates on my profile</span><label class="ob-toggle-switch"><input type="checkbox" id="ob-show-rates-toggle"${_ob.data.showRates?' checked':''} onchange="_ob.data.showRates=this.checked;obSave();" /><span class="ob-toggle-track"></span></label></label><p class="ob-hint">When off, clients see "Rates on request." Either field can be left blank.</p>`;
+}
+function obRenderQ4(slide){
+  slide.innerHTML=`<div class="ob-question">What else do you bring to a shoot?</div><div class="ob-chip-grid">${OB_SPECS.map(s=>`<button class="ob-chip-btn${(_ob.data.specialties||[]).includes(s)?' selected':''}" onclick="obToggleSpec('${s.replace(/'/g,"\\'")}')"> ${escapeHtml(s)}</button>`).join('')}</div><p class="ob-hint">Select all that apply.</p>`;
+}
+function obToggleSpec(s){
+  const arr=_ob.data.specialties||[];const idx=arr.indexOf(s);
+  if(idx>=0)arr.splice(idx,1);else arr.push(s);
+  _ob.data.specialties=arr;obSave();
+  document.querySelectorAll('.ob-chip-btn').forEach(btn=>btn.classList.toggle('selected',arr.includes(btn.textContent.trim())));
+}
+window.obToggleSpec=obToggleSpec;
+function obRenderQ5(slide){
+  slide.innerHTML=`<div class="ob-question">Where can clients see your work?</div><input id="ob-contact-input" class="ob-text-input" placeholder="@yourhandle or https://yoursite.com" value="${escapeHtml(_ob.data.contact||'')}" style="margin-top:8px;"/><p class="ob-hint">Instagram handle or portfolio URL — you can skip this.</p>`;
+  setTimeout(()=>document.getElementById('ob-contact-input')?.focus(),80);
+}
+function obRenderClaim(slide){
+  const backBtn=document.getElementById('ob-back-btn');if(backBtn)backBtn.style.display='none';
+  const nextBtn=document.getElementById('ob-next-btn');if(nextBtn)nextBtn.style.display='none';
+  const lbl=document.getElementById('ob-step-label');if(lbl)lbl.textContent='';
+  slide.innerHTML=`<div style="text-align:center;padding:32px 0 16px;"><div style="font-size:2.8rem;margin-bottom:14px;">🎉</div><div class="ob-question" style="margin-bottom:10px;">You're on the map.</div><p style="color:#9ca3af;font-size:.92rem;line-height:1.6;margin-bottom:28px;">Create your account to claim the profile you just built — every answer you gave is already saved.</p><button class="ob-auth-btn" onclick="obSignInGoogle()">Continue with Google</button><div style="margin:14px 0;color:#4b5563;font-size:.8rem;">— or —</div><input id="ob-magic-email" class="ob-text-input" type="email" placeholder="Email for magic link" style="margin-bottom:10px;"/><button class="ob-auth-btn" style="background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.35);color:#818cf8;" onclick="obSendMagicLink()">Send Magic Link</button></div>`;
+}
+async function obSignInGoogle(){
+  if(!_ob)return;
+  _ob.data.claimPending=true;obSave();
+  const{error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin+'/?ob_claim=1'}});
+  if(error)showToast('Error: '+error.message,'#ef4444');
+}
+window.obSignInGoogle=obSignInGoogle;
+async function obSendMagicLink(){
+  const email=document.getElementById('ob-magic-email')?.value?.trim();
+  if(!email){showToast('Enter your email','#ef4444');return;}
+  if(!_ob)return;_ob.data.claimPending=true;obSave();
+  const{error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.origin+'/?ob_claim=1'}});
+  if(error){showToast('Error: '+error.message,'#ef4444');return;}
+  showToast('Magic link sent! Check your email.','#16a34a');
+}
+window.obSendMagicLink=obSendMagicLink;
+async function obApplyClaimPrefill(user){
+  let stored=null;try{stored=JSON.parse(localStorage.getItem(OB_KEY)||'null');}catch(e){}
+  if(!stored||!stored.data?.claimPending)return;
+  const d=stored.data;
+  await supabase.from('onboarding_responses').update({claimed_by:user.id,completed:true}).eq('session_id',stored.sessionId).then(()=>{},()=>{});
+  if(d.primaryRole){const ptSel=document.getElementById('jn-primary-tag');if(ptSel)ptSel.value=d.primaryRole;document.querySelectorAll('.spec-check').forEach(cb=>{if(cb.value===d.primaryRole)cb.checked=true;});if(typeof updateJnPrimaryTag==='function')updateJnPrimaryTag();}
+  if(d.city&&d.city!=='Somewhere else'){const locEl=document.getElementById('jn-location');if(locEl)locEl.value=d.city;}
+  if(d.halfDayRate||d.fullDayRate){const hEl=document.getElementById('jn-half');if(hEl&&d.halfDayRate)hEl.value=d.halfDayRate;const fEl=document.getElementById('jn-full');if(fEl&&d.fullDayRate)fEl.value=d.fullDayRate;const srEl=document.getElementById('jn-show-rates');if(srEl){srEl.checked=!!d.showRates;if(typeof updateJnRatesToggle==='function')updateJnRatesToggle();}}
+  if(d.contact){if(d.contact.startsWith('http')){const pEl=document.getElementById('jn-portfolio-url');if(pEl)pEl.value=d.contact;}else{const igEl=document.getElementById('jn-instagram');if(igEl)igEl.value=d.contact.replace(/^@?/,'@');}}
+  const nameEl=document.getElementById('jn-name');if(nameEl&&!nameEl.value){const meta=user.user_metadata;const n=meta?.full_name||meta?.name||'';if(n)nameEl.value=n;}
+  stored.data.claimPending=false;try{localStorage.setItem(OB_KEY,JSON.stringify(stored));}catch(e){}
+  openJoin();
+}
+function obNextStep(){
+  if(!_ob)return;const step=_ob.step;
+  if(step===2&&_ob.data.city==='Somewhere else'){obCityNext();return;}
+  if(step===3){const hv=document.getElementById('ob-half-day')?.value;const fv=document.getElementById('ob-full-day')?.value;_ob.data.halfDayRate=hv?parseInt(hv,10):null;_ob.data.fullDayRate=fv?parseInt(fv,10):null;obSave();obUpsert();obRenderStep(4);return;}
+  if(step===4){obUpsert();obRenderStep(5);return;}
+  if(step===5){const val=document.getElementById('ob-contact-input')?.value?.trim()||'';_ob.data.contact=val;obSave();obUpsert({completed:true});obRenderStep(6);return;}
+}
+window.obNextStep=obNextStep;
+function obBack(){if(!_ob||_ob.step<=1)return;obRenderStep(_ob.step-1);}
+window.obBack=obBack;
+// Boot: check for /start path or ?ob_claim=1 return
+(function(){
+  const params=new URLSearchParams(location.search);
+  if(params.get('ob_claim')==='1'){history.replaceState({},'','/');localStorage.setItem('shutter._ob_claim','1');}
+  const isStart=window.location.pathname==='/start'||params.get('ob')==='1';
+  if(isStart)document.addEventListener('DOMContentLoaded',obInit);
+})();
 initAuth();
