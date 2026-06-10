@@ -1415,6 +1415,6 @@ window.obBack=obBack;
   const params=new URLSearchParams(location.search);
   if(params.get('ob_claim')==='1'){history.replaceState({},'','/');localStorage.setItem('shutter._ob_claim','1');}
   const isStart=window.location.pathname==='/start'||params.get('ob')==='1';
-  if(isStart)document.addEventListener('DOMContentLoaded',obInit);
+  if(isStart)obInit();
 })();
 initAuth();
