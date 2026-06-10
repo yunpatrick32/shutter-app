@@ -1314,8 +1314,8 @@ function obRenderStep(step){
   const stepLabels=['1 of 5','2 of 5','3 of 5','4 of 5 · Almost done!','5 of 5',''];
   if(label)label.textContent=stepLabels[step-1]||'';
   const backBtn=document.getElementById('ob-back-btn');const nextBtn=document.getElementById('ob-next-btn');
-  if(backBtn)backBtn.style.display=(step>1&&step<=6)?'':'none';
-  if(nextBtn)nextBtn.style.display=(step>=3&&step<=5)?'':'none';
+  if(backBtn)backBtn.style.display=(step>1&&step<=6)?'block':'none';
+  if(nextBtn)nextBtn.style.display=(step>=3&&step<=5)?'block':'none';
   const slide=document.getElementById('ob-slide');if(!slide)return;
   if(step===1)obRenderQ1(slide);
   else if(step===2)obRenderQ2(slide);
