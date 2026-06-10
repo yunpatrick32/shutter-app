@@ -1314,7 +1314,7 @@ function obRenderStep(step){
   const stepLabels=['1 of 5','2 of 5','3 of 5','4 of 5 · Almost done!','5 of 5',''];
   if(label)label.textContent=stepLabels[step-1]||'';
   const backBtn=document.getElementById('ob-back-btn');const nextBtn=document.getElementById('ob-next-btn');
-  if(backBtn)backBtn.style.display=(step>1&&step<=5)?'':'none';
+  if(backBtn)backBtn.style.display=(step>1&&step<=6)?'':'none';
   if(nextBtn)nextBtn.style.display=(step>=3&&step<=5)?'':'none';
   const slide=document.getElementById('ob-slide');if(!slide)return;
   if(step===1)obRenderQ1(slide);
@@ -1367,7 +1367,6 @@ function obRenderQ5(slide){
   setTimeout(()=>document.getElementById('ob-contact-input')?.focus(),80);
 }
 function obRenderClaim(slide){
-  const backBtn=document.getElementById('ob-back-btn');if(backBtn)backBtn.style.display='none';
   const nextBtn=document.getElementById('ob-next-btn');if(nextBtn)nextBtn.style.display='none';
   const lbl=document.getElementById('ob-step-label');if(lbl)lbl.textContent='';
   slide.innerHTML=`<div style="text-align:center;padding:32px 0 16px;"><div style="font-size:2.8rem;margin-bottom:14px;">🎉</div><div class="ob-question" style="margin-bottom:10px;">You're on the map.</div><p style="color:#9ca3af;font-size:.92rem;line-height:1.6;margin-bottom:28px;">Create your account to claim the profile you just built — every answer you gave is already saved.</p><button class="ob-auth-btn" onclick="obSignInGoogle()">Continue with Google</button><div style="margin:14px 0;color:#4b5563;font-size:.8rem;">— or —</div><input id="ob-magic-email" class="ob-text-input" type="email" placeholder="Email for magic link" style="margin-bottom:10px;"/><button class="ob-auth-btn" style="background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.35);color:#818cf8;" onclick="obSendMagicLink()">Send Magic Link</button></div>`;
@@ -1409,7 +1408,7 @@ function obNextStep(){
   if(step===5){const val=document.getElementById('ob-contact-input')?.value?.trim()||'';_ob.data.contact=val;obSave();obUpsert({completed:true});obRenderStep(6);return;}
 }
 window.obNextStep=obNextStep;
-function obBack(){if(!_ob||_ob.step<=1)return;obRenderStep(_ob.step-1);}
+function obBack(){if(!_ob||_ob.step<=1)return;const s=_ob.step;if(s===3){const hv=document.getElementById('ob-half-day')?.value;const fv=document.getElementById('ob-full-day')?.value;_ob.data.halfDayRate=hv?parseInt(hv,10):null;_ob.data.fullDayRate=fv?parseInt(fv,10):null;obSave();}if(s===5){const val=document.getElementById('ob-contact-input')?.value?.trim()||'';_ob.data.contact=val;obSave();}obRenderStep(s===6?5:s-1);}
 window.obBack=obBack;
 // Boot: check for /start path or ?ob_claim=1 return
 (function(){
